@@ -2,331 +2,418 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>Storm Runner: CRASH PROOF</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Storm Runner: VISUAL FINAL</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto+Mono:wght@400;700&display=swap');
 
     /* --- BASE --- */
-    html, body { 
-        width: 100%; height: 100%; margin: 0; padding: 0;
-        overflow: hidden; background: #000; 
+    body { 
+        margin: 0; overflow: hidden; background: #000; 
         font-family: 'Roboto Mono', monospace; 
         user-select: none; -webkit-user-select: none;
-        touch-action: none; /* Bloquea gestos del navegador */
-        -webkit-tap-highlight-color: transparent;
+        touch-action: none; /* Bloquea zoom y scroll accidental */
     }
     canvas { display: block; width: 100%; height: 100%; }
 
-    /* --- UI --- */
+    /* --- CAPAS DE INTERFAZ (UI) --- */
+    /* La clave es el pointer-events. 'none' deja pasar el clic, 'auto' lo atrapa. */
     .ui-layer {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         text-align: center; color: white; 
-        z-index: 50; pointer-events: none;
-        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        z-index: 50; /* Capa superior */
+        pointer-events: none; /* Por defecto, transparente a los clics */
     }
-    .interactive { pointer-events: auto !important; background: rgba(0, 15, 30, 0.95); }
+    
+    /* Cuando esta clase está activa, la capa atrapa los clics (para botones) */
+    .interactive { 
+        pointer-events: auto !important; 
+        background: rgba(0, 15, 30, 0.95); 
+    }
+    
     .hidden { display: none !important; }
 
-    /* --- TIPOGRAFÍA --- */
+    /* --- ESTILOS VISUALES --- */
     h1 { font-family: 'Black Ops One', cursive; font-size: clamp(30px, 10vh, 60px); color: #00d2ff; margin: 0; text-shadow: 0 0 15px #00d2ff; }
-    h2 { font-size: clamp(14px, 5vh, 25px); color: #ffcc00; margin: 5px 0 15px 0; }
+    h2 { font-size: clamp(14px, 5vh, 25px); color: #ffcc00; margin: 10px 0; }
 
-    /* --- BOTONES (MEJORADOS) --- */
     .btn {
         background: linear-gradient(180deg, #00d2ff, #0077ff);
         border: 2px solid white; color: white; 
-        padding: 12px 35px;
-        font-family: 'Black Ops One'; font-size: clamp(16px, 4vh, 22px); 
+        padding: 15px 40px;
+        font-family: 'Black Ops One'; font-size: 20px; 
         cursor: pointer; margin: 10px; border-radius: 8px;
         box-shadow: 0 0 15px #0077ff; text-transform: uppercase; 
-        min-width: 160px; display: inline-block;
-        touch-action: manipulation; /* FIX CLAVE: Reacción instantánea */
+        min-width: 180px; 
+        touch-action: manipulation; /* Respuesta rápida al toque */
     }
-    .btn:active { transform: scale(0.95); background: #0055aa; }
+    .btn:active { background: #0055aa; transform: scale(0.95); }
 
-    /* --- GAME OVER BOX --- */
-    .info-box {
-        background: rgba(0,0,0,0.6); padding: 15px; border-radius: 12px; 
-        border: 1px solid rgba(255,255,255,0.3); max-width: 80%; margin-bottom: 15px;
+    /* --- TIENDA (Asegurada) --- */
+    .perk-grid { display: flex; gap: 15px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;}
+    .perk-card { 
+        border: 2px solid #555; padding: 15px; border-radius: 10px; 
+        cursor: pointer; background: rgba(0,0,0,0.6); 
+        pointer-events: auto; /* Asegura que reciba clics */
+        min-width: 100px;
     }
-    .stat-row { font-size: clamp(12px, 4vh, 18px); margin: 5px 0; color: #ddd; }
-    .big-score { font-size: clamp(20px, 6vh, 35px); color: #00d2ff; font-weight: bold; margin-top: 5px; }
+    .perk-card:active { background: #00d2ff; border-color: white; color: black; transform: scale(0.95);}
+    .perk-icon { font-size: 30px; display: block; margin-bottom: 5px; }
+    .price-tag { color: #ffd700; font-weight: bold; }
 
-    /* --- TIENDA --- */
-    .perk-grid { display: flex; justify-content: center; gap: 10px; width: 95%; max-width: 600px; margin-bottom: 10px; }
-    .perk-card { border: 1px solid #555; background: rgba(0,0,0,0.5); padding: 10px; cursor: pointer; border-radius: 8px; flex: 1; pointer-events: auto; }
-    .perk-card:active { background: #00d2ff; color: black; }
-    .perk-icon { font-size: clamp(20px, 5vh, 30px); display: block; margin-bottom: 5px; }
-    .perk-text { font-size: clamp(10px, 3vh, 14px); }
-
-    /* --- CONTROLES Y HUD --- */
-    #mobileControls { display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
-    .touch-area {
-        pointer-events: auto; position: absolute; bottom: 10px;
-        width: 80px; height: 80px; background: rgba(255, 255, 255, 0.05);
-        border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 50%;
-        display: flex; justify-content: center; align-items: center;
-        font-size: 30px; color: rgba(255,255,255,0.3);
-    }
-    .touch-area:active { background: rgba(255, 255, 255, 0.2); }
-    #btn-left { left: 20px; bottom: 20px; } #btn-right { left: 120px; bottom: 20px; }
-    #btn-jump { right: 20px; bottom: 30px; width: 90px; height: 90px; background: rgba(0, 210, 255, 0.1); }
-
+    /* --- HUD Y CONTROLES --- */
     #hud-top { 
-        position: absolute; top: 0; left: 0; width: 100%; padding: 10px 20px; box-sizing: border-box;
-        display: flex; justify-content: space-between; align-items: flex-start;
-        font-size: 14px; font-weight: bold; z-index: 10; pointer-events: none; color: white; text-shadow: 1px 1px 2px black;
+        position: absolute; top: 0; left: 0; width: 100%; padding: 10px; box-sizing: border-box;
+        display: flex; justify-content: space-between; font-weight: bold; color: white; z-index: 10;
+        text-shadow: 1px 1px 2px black; pointer-events: none;
     }
-    .bar-bg { width: 100px; height: 10px; background: #333; border: 1px solid white; overflow: hidden; display: inline-block; }
-    .hp-bar { height: 100%; background: #ff0044; width: 100%; transition: width 0.2s; }
 
-    #rotate-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; }
+    #mobileControls {
+        display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
+        z-index: 20; pointer-events: none;
+    }
+    .touch-area {
+        pointer-events: auto; position: absolute; bottom: 20px;
+        width: 80px; height: 80px; 
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 30px; color: white;
+    }
+    .touch-area:active { background: rgba(255, 255, 255, 0.3); }
+    #btn-left { left: 20px; } #btn-right { left: 120px; }
+    #btn-jump { right: 20px; bottom: 40px; width: 90px; height: 90px; background: rgba(0, 210, 255, 0.2); }
+
+    /* --- AVISO GIRO --- */
+    #rotate-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
     @media screen and (orientation: portrait) { #rotate-screen { display: flex; } }
 </style>
 </head>
 <body>
 
-<div id="rotate-screen"><div style="font-size: 50px;">🔄</div><h1>GIRA TU TELÉFONO</h1></div>
+<div id="rotate-screen"><h1>GIRA TU TELÉFONO 🔄</h1></div>
 
 <div id="menuScreen" class="ui-layer interactive">
-    <h1>STORM RUNNER</h1><h2 style="letter-spacing: 3px;">MOBILE FIX</h2>
-    <div style="margin-top: 15px;">
-        <button class="btn" onclick="Game.init(1, 'STORY')" ontouchstart="">🏰 JUGAR</button>
-        <button class="btn" style="filter: hue-rotate(45deg);" onclick="Game.init(1, 'SURVIVAL')" ontouchstart="">💀 INFINITO</button>
+    <h1>STORM RUNNER</h1><h2>VISUAL FINAL</h2>
+    <div>
+        <button class="btn" id="startStoryBtn">🏰 JUGAR</button>
+        <button class="btn" id="startSurvivalBtn" style="filter: hue-rotate(45deg);">💀 INFINITO</button>
     </div>
 </div>
 
 <div id="shopScreen" class="ui-layer interactive hidden">
     <h2 style="color:#00ff00">¡NIVEL COMPLETADO!</h2>
+    <p>Toca para comprar mejoras:</p>
     <div class="perk-grid">
-        <div class="perk-card" onclick="Game.buyPerk('health')"><span class="perk-icon">❤️</span><div class="perk-text">+VIDA (100🟡)</div></div>
-        <div class="perk-card" onclick="Game.buyPerk('shield')"><span class="perk-icon">🛡️</span><div class="perk-text">ESCUDO (150🟡)</div></div>
-        <div class="perk-card" onclick="Game.buyPerk('magnet')"><span class="perk-icon">🧲</span><div class="perk-text">IMÁN (200🟡)</div></div>
+        <div class="perk-card" onclick="Game.buyPerk('health')">
+            <span class="perk-icon">❤️</span>
+            <div>+VIDA</div>
+            <div class="price-tag">100 🟡</div>
+        </div>
+        <div class="perk-card" onclick="Game.buyPerk('shield')">
+            <span class="perk-icon">🛡️</span>
+            <div>ESCUDO</div>
+            <div class="price-tag">150 🟡</div>
+        </div>
     </div>
-    <button class="btn" onclick="Game.nextLevel()" ontouchstart="">CONTINUAR ▶</button>
+    <br>
+    <button class="btn" onclick="Game.nextLevel()">CONTINUAR ▶</button>
 </div>
 
 <div id="statsScreen" class="ui-layer interactive hidden">
-    <h1 style="color: #ff4444; font-size: clamp(30px, 8vh, 50px);">GAME OVER</h1>
-    <div class="info-box">
-        <div class="stat-row">⏱️ Tiempo: <span id="statTime">0</span>s</div>
-        <div class="stat-row">🌊 Olas: <span id="statWaves">0</span></div>
-        <div class="big-score">🏆 <span id="statScore">0</span></div>
-    </div>
-    <button class="btn" onclick="window.location.reload()" ontouchstart="">MENÚ</button>
+    <h1 style="color: #ff4444">GAME OVER</h1>
+    <p>Puntaje Final: <span id="finalScore">0</span></p>
+    <button class="btn" onclick="window.location.reload()">MENÚ</button>
+</div>
+
+<div id="hud-top" class="hidden">
+    <div>❤️ <span id="livesVal">3</span></div>
+    <div id="zoneTitle">ZONA 1</div>
+    <div>🟡 <span id="coinsVal">0</span></div>
 </div>
 
 <div id="mobileControls"><div id="btn-left" class="touch-area">⬅️</div><div id="btn-right" class="touch-area">➡️</div><div id="btn-jump" class="touch-area">⬆️</div></div>
 
-<div id="hud-top" class="hidden">
-    <div><div class="bar-bg"><div class="hp-bar" id="hpBar"></div></div> <span>❤️<span id="livesVal">3</span></span></div>
-    <div style="position: absolute; left: 50%; transform: translateX(-50%); opacity: 0.7;"><span id="zoneTitle">ZONA 1</span></div>
-    <div>🟡<span id="coinsVal">0</span></div>
-</div>
-
 <canvas id="gameCanvas"></canvas>
 
 <script>
-/* --- MOTOR v7.1 CRASH PROOF --- */
+/* --- MOTOR v9.0 VISUAL + FUNCIONAL --- */
+
+// 1. Configuración
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha: false });
+let isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
 function resize() {
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    if(Game.player) Game.seaLevel = canvas.height - 120;
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight;
+    // Ajustamos el nivel del mar un poco más alto
+    if(Game.player) Game.seaLevel = canvas.height - 140;
 }
-window.addEventListener('resize', resize); resize();
+window.addEventListener('resize', resize);
+resize();
 
-const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 if (isMobile) document.getElementById('mobileControls').style.display = 'block';
 
+// 2. Audio Seguro
 const AudioEngine = {
     ctx: null,
-    init() { 
-        // FIX: Try-Catch para evitar crash si el navegador bloquea audio
-        try {
-            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-            if (this.ctx.state === 'suspended') this.ctx.resume();
-        } catch(e) { console.log("Audio Error:", e); }
-    },
     play(type) {
-        if (!this.ctx) return;
+        if (!this.ctx) {
+            try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return; }
+        }
+        if (this.ctx.state === 'suspended') this.ctx.resume().catch(e => {});
+        
         try {
-            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-            osc.connect(gain); gain.connect(this.ctx.destination); const now = this.ctx.currentTime;
-            if (type === 'jump') { osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(300, now + 0.1); gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); } 
-            else if (type === 'coin') { osc.frequency.setValueAtTime(1200, now); osc.frequency.setValueAtTime(1800, now + 0.1); gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); } 
-            else if (type === 'hit') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); }
-            osc.start(); osc.stop(now + 0.3);
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            const now = this.ctx.currentTime;
+            
+            if (type === 'jump') {
+                osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(300, now+0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.1);
+            } else if (type === 'coin') {
+                osc.frequency.setValueAtTime(1000, now); osc.frequency.linearRampToValueAtTime(1500, now+0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.1);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
+            }
+            osc.start(); osc.stop(now + 0.2);
         } catch(e) {}
     }
 };
 
+// 3. Lógica del Juego
 const Game = {
-    loopId: null, state: 'MENU', mode: 'STORY', level: 1,
-    stats: { time: 0, coins: 0, waves: 0 },
-    player: { x: 50, y: 0, dy: 0, grounded: false, color: '#ff9900', keys: {left:false, right:false, jump:false}, lives: 3, maxLives: 3, shield: false, magnet: false },
-    obstacles: [], coins: [], speed: 6, nextSpawn: 0, seaLevel: 0,
+    running: false, state: 'MENU', mode: 'STORY', level: 1, loopId: null,
+    stats: { time: 0, coins: 0 },
+    player: { x: 50, y: 0, dy: 0, grounded: false, color: '#ff9900', keys: {left:false,right:false,jump:false}, lives:3, shield:false },
+    obstacles: [], coins: [], seaLevel: 0, speed: 6,
 
-    init(numPlayers, mode) {
-        // --- FIX CRÍTICO: OCULTAR UI PRIMERO ---
-        // Esto asegura que el botón "funcione" visualmente incluso si el juego falla después
-        document.querySelectorAll('.ui-layer').forEach(el => el.classList.add('hidden'));
+    init(mode) {
+        this.running = true;
+        this.state = 'PLAYING';
+        this.mode = mode;
+        this.level = 1;
+        this.speed = 6;
+        this.stats = { time: 0, coins: 0 };
+        this.obstacles = [];
+        this.coins = [];
+        this.player.lives = 3;
+        this.player.shield = false;
+        this.seaLevel = canvas.height - 140;
+        this.player.y = this.seaLevel;
+        
+        // Ocultar menús, mostrar HUD
+        document.getElementById('menuScreen').classList.add('hidden');
+        document.getElementById('statsScreen').classList.add('hidden');
+        document.getElementById('shopScreen').classList.add('hidden');
         document.getElementById('hud-top').classList.remove('hidden');
 
-        // --- FIX CRÍTICO: TRY-CATCH EN FULLSCREEN ---
-        // Si el celular bloquea la pantalla completa, el juego NO se detiene
-        try {
-            let elem = document.documentElement;
-            if (elem.requestFullscreen) { elem.requestFullscreen().catch(e => console.log(e)); } 
-            else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
-        } catch(e) { console.log("Fullscreen negado, continuando juego..."); }
+        // Actualizar HUD inicial
+        this.updateHUD();
 
         if (this.loopId) cancelAnimationFrame(this.loopId);
-        AudioEngine.init(); resize();
-        
-        this.mode = mode; this.state = 'PLAYING'; this.level = 1; this.speed = 6;
-        this.stats = { time: 0, coins: 0, waves: 0 }; this.obstacles = []; this.coins = [];
-        this.player.lives = 3; this.player.maxLives = 3; this.player.y = this.seaLevel; this.player.dy = 0;
-        this.player.keys = {left:false, right:false, jump:false}; 
-        
         this.loop();
     },
 
     update() {
         this.stats.time += 0.016;
-        this.nextSpawn--;
-        if (this.nextSpawn <= 0) {
-            this.spawnObstacle();
-            this.nextSpawn = this.mode === 'SURVIVAL' ? Math.max(30, 100 - this.stats.time) : 100;
+        
+        // Spawner
+        if (Math.random() < 0.02) {
+            let type = Math.random() > 0.8 ? 'shark' : 'wave';
+            let h = type === 'shark' ? 30 : Math.random() * 50 + 40;
+            let w = type === 'shark' ? 60 : Math.random() * 30 + 40;
+            let y = type === 'shark' ? this.seaLevel + 10 : this.seaLevel - h + 20;
+            let c = type === 'shark' ? 'grey' : (Math.random()>0.5 ? '#00aaff' : '#0088cc');
+            this.obstacles.push({ x: canvas.width, y: y, w: w, h: h, type: type, color: c });
         }
-        if (this.player.keys.right && this.player.x < canvas.width - 50) this.player.x += 6;
-        if (this.player.keys.left && this.player.x > 10) this.player.x -= 6;
-        if (this.player.keys.jump && this.player.grounded) { this.player.dy = -15; this.player.grounded = false; AudioEngine.play('jump'); }
-        
-        this.player.y += this.player.dy;
-        if (this.player.y < this.seaLevel) { this.player.dy += 0.6; this.player.grounded = false; } else { this.player.y = this.seaLevel; this.player.dy = 0; this.player.grounded = true; }
 
-        this.obstacles.forEach(obs => {
-            obs.x -= this.speed;
-            if (this.player.x < obs.x + obs.w - 15 && this.player.x + 40 > obs.x + 15 && this.player.y < obs.y + obs.h - 15 && this.player.y + 40 > obs.y + 15) {
-                if (this.player.shield) { this.player.shield = false; obs.x = -1000; } else { this.takeDamage(); obs.x = -1000; }
+        // Monedas
+        if (Math.random() < 0.015) this.coins.push({ x: canvas.width, y: this.seaLevel - 50 - Math.random()*100 });
+
+        // Jugador Física
+        if (this.player.keys.right) this.player.x += 6;
+        if (this.player.keys.left) this.player.x -= 6;
+        if (this.player.keys.jump && this.player.grounded) {
+            this.player.dy = -15; this.player.grounded = false; AudioEngine.play('jump');
+        }
+        this.player.y += this.player.dy;
+        if (this.player.y < this.seaLevel) {
+            this.player.dy += 0.6; this.player.grounded = false;
+        } else {
+            this.player.y = this.seaLevel; this.player.dy = 0; this.player.grounded = true;
+        }
+        if (this.player.x < 0) this.player.x = 0;
+        if (this.player.x > canvas.width - 40) this.player.x = canvas.width - 40;
+
+        // Colisiones
+        this.obstacles.forEach(o => {
+            o.x -= this.speed;
+            // Hitbox ajustada
+            if (this.player.x < o.x + o.w - 15 && this.player.x + 40 > o.x + 15 &&
+                this.player.y < o.y + o.h - 15 && this.player.y + 40 > o.y + 15) {
+                if(this.player.shield) { this.player.shield = false; o.x = -1000; }
+                else { this.player.lives--; o.x = -1000; AudioEngine.play('hit'); }
+                if(this.player.lives <= 0) this.gameOver();
+                this.updateHUD();
             }
-            if(obs.x < -100 && !obs.passed) { obs.passed = true; this.stats.waves++; }
         });
-        
-        if(Math.random() < 0.02) this.coins.push({x: canvas.width, y: this.seaLevel - 50 - Math.random()*150, val: 10});
+
         this.coins.forEach(c => {
             c.x -= this.speed;
-            if (this.player.magnet && Math.abs(c.x - this.player.x) < 200) { c.x -= (c.x - this.player.x) * 0.1; c.y -= (c.y - this.player.y) * 0.1; }
-            if (Math.abs(c.x - this.player.x) < 50 && Math.abs(c.y - this.player.y) < 50) { this.stats.coins += c.val; c.x = -9999; AudioEngine.play('coin'); }
+            if (Math.abs(c.x - this.player.x) < 50 && Math.abs(c.y - this.player.y) < 50) {
+                this.stats.coins += 10; c.x = -999; AudioEngine.play('coin');
+                this.updateHUD();
+            }
         });
-        this.obstacles = this.obstacles.filter(o => o.x > -200); this.coins = this.coins.filter(c => c.x > -200);
-        document.getElementById('livesVal').innerText = this.player.lives;
-        document.getElementById('hpBar').style.width = (this.player.lives / this.player.maxLives * 100) + "%";
-        document.getElementById('coinsVal').innerText = this.stats.coins;
 
-        if (this.mode === 'STORY' && this.stats.time >= this.level * 30) this.levelComplete();
-    },
+        this.obstacles = this.obstacles.filter(o => o.x > -100);
+        this.coins = this.coins.filter(c => c.x > -100);
 
-    spawnObstacle() {
-        let type = Math.random() > 0.8 ? 'shark' : 'wave';
-        let h = type === 'shark' ? 30 : Math.random() * 50 + 40;
-        let w = type === 'shark' ? 50 : Math.random() * 30 + 40;
-        let y = type === 'shark' ? this.seaLevel + 10 : this.seaLevel - h + 20;
-        let color = type === 'shark' ? 'grey' : (Math.random()>0.5 ? '#00aaff' : '#0077be');
-        this.obstacles.push({ x: canvas.width, y: y, w: w, h: h, type: type, color: color, passed: false });
-    },
-
-    takeDamage() {
-        this.player.lives--; AudioEngine.play('hit');
-        ctx.translate(5, 0); setTimeout(() => ctx.translate(-5,0), 50);
-        if (this.player.lives <= 0) this.gameOver();
-    },
-
-    levelComplete() {
-        this.state = 'SHOP'; document.getElementById('shopScreen').classList.remove('hidden');
-        document.getElementById('hud-top').classList.add('hidden');
-    },
-
-    nextLevel() {
-        this.level++; this.speed += 1.5; this.stats.time = 0; this.state = 'PLAYING';
-        document.getElementById('shopScreen').classList.add('hidden');
-        document.getElementById('hud-top').classList.remove('hidden');
-        document.getElementById('zoneTitle').innerText = "ZONA " + this.level;
-    },
-
-    buyPerk(type) {
-        if (type === 'health' && this.stats.coins >= 100) { this.stats.coins -= 100; this.player.lives++; this.player.maxLives++; AudioEngine.play('coin'); }
-        if (type === 'shield' && this.stats.coins >= 150 && !this.player.shield) { this.stats.coins -= 150; this.player.shield = true; AudioEngine.play('coin'); }
-        if (type === 'magnet' && this.stats.coins >= 200 && !this.player.magnet) { this.stats.coins -= 200; this.player.magnet = true; AudioEngine.play('coin'); }
-        document.getElementById('coinsVal').innerText = this.stats.coins;
-    },
-
-    gameOver() {
-        this.state = 'GAMEOVER'; document.getElementById('statsScreen').classList.remove('hidden');
-        document.getElementById('hud-top').classList.add('hidden');
-        document.getElementById('statTime').innerText = Math.floor(this.stats.time);
-        document.getElementById('statWaves').innerText = this.stats.waves;
-        document.getElementById('statScore').innerText = Math.floor(this.stats.time * 10 + this.stats.coins * 5);
+        // Verificar Fin de Nivel
+        if (this.mode === 'STORY' && this.stats.time > this.level * 30) {
+            this.levelComplete();
+        }
     },
 
     draw() {
         ctx.clearRect(0,0,canvas.width, canvas.height);
+        
+        // Fondo Gradiente
         let grad = ctx.createLinearGradient(0,0,0,canvas.height);
-        grad.addColorStop(0, this.level % 2 === 0 ? "#001" : "#002"); grad.addColorStop(1, "#0a3d62");
-        ctx.fillStyle = grad; ctx.fillRect(0,0,canvas.width, canvas.height);
-        ctx.fillStyle = "rgba(0, 80, 180, 0.8)"; ctx.fillRect(0, this.seaLevel + 20, canvas.width, canvas.height);
+        grad.addColorStop(0, this.level%2==0 ? "#000" : "#001e38"); grad.addColorStop(1, "#0a3d62");
+        ctx.fillStyle = grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+        
+        // Agua
+        ctx.fillStyle = "rgba(0, 100, 200, 0.8)";
+        ctx.fillRect(0, this.seaLevel + 20, canvas.width, canvas.height);
 
-        // BARCO
-        ctx.save(); ctx.translate(this.player.x + 20, this.player.y + 20);
+        // --- DIBUJO DEL BARCO (RESTITUIDO) ---
+        ctx.save();
+        ctx.translate(this.player.x + 20, this.player.y + 20);
+        // Casco
         ctx.fillStyle = this.player.color; ctx.beginPath();
         ctx.moveTo(-20, 0); ctx.lineTo(20, 0); ctx.lineTo(15, 20); ctx.lineTo(-15, 20); ctx.fill();
+        // Vela
         ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(0,-30); ctx.lineTo(0,0); ctx.lineTo(20,-10); ctx.fill();
-        if(this.player.shield) { ctx.strokeStyle = "#00ffff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 5, 35, 0, Math.PI*2); ctx.stroke(); }
+        // Escudo Glow
+        if(this.player.shield) {
+            ctx.strokeStyle = "#00ffff"; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0, 5, 35, 0, Math.PI*2); ctx.stroke();
+        }
         ctx.restore();
 
-        // ENEMIGOS
+        // --- DIBUJO DE OLAS CURVAS Y TIBURONES ---
         this.obstacles.forEach(o => {
             ctx.fillStyle = o.color;
-            if (o.type === 'shark') {
-                ctx.font = "30px Arial"; ctx.fillText("🦈", o.x, o.y + 30);
+            if(o.type==='shark') {
+                ctx.font="30px Arial"; ctx.fillText("🦈", o.x, o.y+30);
             } else {
-                ctx.beginPath(); ctx.moveTo(o.x, o.y + o.h);
-                ctx.quadraticCurveTo(o.x + o.w/2, o.y - 20, o.x + o.w, o.y + o.h); ctx.fill();
+                // Ola curva
+                ctx.beginPath();
+                ctx.moveTo(o.x, o.y + o.h);
+                ctx.quadraticCurveTo(o.x + o.w/2, o.y - 20, o.x + o.w, o.y + o.h);
+                ctx.fill();
             }
         });
+        
+        // Monedas
         ctx.fillStyle = "gold";
         this.coins.forEach(c => { ctx.beginPath(); ctx.arc(c.x, c.y, 10, 0, Math.PI*2); ctx.fill(); });
     },
 
     loop() {
-        if (this.state === 'PLAYING') { this.update(); this.draw(); } else if (this.state === 'SHOP') { this.draw(); }
-        if (this.state !== 'GAMEOVER') this.loopId = requestAnimationFrame(() => this.loop());
+        if (this.running) {
+            this.update();
+            this.draw();
+        } else if (this.state === 'SHOP') {
+            this.draw(); // Seguir dibujando el fondo mientras estamos en la tienda
+        }
+        
+        if (this.state !== 'GAMEOVER') {
+            this.loopId = requestAnimationFrame(() => this.loop());
+        }
+    },
+
+    updateHUD() {
+        document.getElementById('livesVal').innerText = this.player.lives;
+        document.getElementById('coinsVal').innerText = this.stats.coins;
+        document.getElementById('zoneTitle').innerText = "ZONA " + this.level;
+    },
+
+    // --- FUNCIONES DE LA TIENDA (ASEGURADAS) ---
+    levelComplete() {
+        this.running = false; // Pausar lógica del juego
+        this.state = 'SHOP';
+        document.getElementById('shopScreen').classList.remove('hidden');
+        // Aseguramos que el HUD no estorbe
+        document.getElementById('hud-top').classList.add('hidden');
+    },
+
+    nextLevel() {
+        this.level++;
+        this.speed += 1.5;
+        this.stats.time = 0;
+        this.running = true; // Reanudar juego
+        this.state = 'PLAYING';
+        
+        // Ocultar tienda, mostrar HUD
+        document.getElementById('shopScreen').classList.add('hidden');
+        document.getElementById('hud-top').classList.remove('hidden');
+        this.updateHUD();
+    },
+
+    buyPerk(type) {
+        // Lógica de compra simple y directa
+        if (type === 'health' && this.stats.coins >= 100) { 
+            this.stats.coins -= 100; this.player.lives++; AudioEngine.play('coin');
+        }
+        if (type === 'shield' && this.stats.coins >= 150 && !this.player.shield) { 
+            this.stats.coins -= 150; this.player.shield = true; AudioEngine.play('coin');
+        }
+        // Actualizar el HUD inmediatamente para ver el cambio
+        this.updateHUD();
+    },
+
+    gameOver() {
+        this.running = false;
+        this.state = 'GAMEOVER';
+        document.getElementById('statsScreen').classList.remove('hidden');
+        document.getElementById('hud-top').classList.add('hidden');
+        document.getElementById('finalScore').innerText = Math.floor(this.stats.time * 10 + this.stats.coins);
     }
 };
 
+// 4. EVENTOS
+document.getElementById('startStoryBtn').onclick = function() { Game.init('STORY'); };
+document.getElementById('startSurvivalBtn').onclick = function() { Game.init('SURVIVAL'); };
+
+// Teclado
 window.addEventListener('keydown', e => {
-    if (Game.state !== 'PLAYING') return;
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') Game.player.keys.right = true;
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') Game.player.keys.left = true;
-    if (e.code === 'ArrowUp' || e.code === 'Space') Game.player.keys.jump = true;
+    if (e.code === 'ArrowRight') Game.player.keys.right = true;
+    if (e.code === 'ArrowLeft') Game.player.keys.left = true;
+    if (e.code === 'Space' || e.code === 'ArrowUp') Game.player.keys.jump = true;
 });
 window.addEventListener('keyup', e => {
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') Game.player.keys.right = false;
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') Game.player.keys.left = false;
-    if (e.code === 'ArrowUp' || e.code === 'Space') Game.player.keys.jump = false;
+    if (e.code === 'ArrowRight') Game.player.keys.right = false;
+    if (e.code === 'ArrowLeft') Game.player.keys.left = false;
+    if (e.code === 'Space' || e.code === 'ArrowUp') Game.player.keys.jump = false;
 });
-const addTouch = (id, key) => {
+
+// Táctil
+const bindTouch = (id, key) => {
     const el = document.getElementById(id);
     el.addEventListener('touchstart', (e) => { e.preventDefault(); Game.player.keys[key] = true; });
     el.addEventListener('touchend', (e) => { e.preventDefault(); Game.player.keys[key] = false; });
 };
-addTouch('btn-left', 'left'); addTouch('btn-right', 'right'); addTouch('btn-jump', 'jump');
+bindTouch('btn-left', 'left');
+bindTouch('btn-right', 'right');
+bindTouch('btn-jump', 'jump');
+
 </script>
 </body>
 </html>
-
