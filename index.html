@@ -2,81 +2,116 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Storm Runner: VISUAL FIX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Storm Runner: MOBILE PERFECT</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto+Mono:wght@400;700&display=swap');
 
     /* --- BASE --- */
-    body { 
-        margin: 0; overflow: hidden; background: #000; 
+    html, body { 
+        width: 100%; height: 100%; margin: 0; padding: 0;
+        overflow: hidden; background: #000; 
         font-family: 'Roboto Mono', monospace; 
         user-select: none; -webkit-user-select: none;
-        touch-action: none; -webkit-tap-highlight-color: transparent;
+        touch-action: none; /* Bloquea gestos del navegador */
     }
     canvas { display: block; width: 100%; height: 100%; }
 
-    /* --- UI LAYERS (CAPAS) --- */
+    /* --- UI GENERICA --- */
     .ui-layer {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         text-align: center; color: white; 
-        transition: opacity 0.3s, visibility 0.3s;
         z-index: 50; pointer-events: none;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
     .interactive { 
         pointer-events: auto !important; 
-        background: rgba(0, 20, 40, 0.9); backdrop-filter: blur(5px); 
+        background: rgba(0, 15, 30, 0.95); 
     }
-    .hidden { opacity: 0; visibility: hidden; pointer-events: none !important; }
+    .hidden { display: none !important; }
 
-    /* --- TEXTO Y BOTONES --- */
-    h1 { font-family: 'Black Ops One', cursive; font-size: clamp(40px, 8vw, 70px); color: #00d2ff; margin: 0; text-shadow: 0 0 20px #00d2ff; }
-    h2 { font-size: clamp(20px, 4vw, 30px); color: #ffcc00; margin: 10px 0; }
+    /* --- TEXTOS AJUSTABLES (Clave para que no se vea gigante) --- */
+    /* Usamos 'vh' (altura de pantalla) para que se ajuste en horizontal */
+    h1 { 
+        font-family: 'Black Ops One', cursive; 
+        font-size: clamp(30px, 10vh, 60px); /* Se adapta a la altura */
+        color: #00d2ff; margin: 0; 
+        text-shadow: 0 0 15px #00d2ff; 
+    }
+    h2 { 
+        font-size: clamp(14px, 5vh, 25px); 
+        color: #ffcc00; margin: 5px 0 15px 0; 
+    }
+
+    /* --- CAJAS DE INFORMACIÓN (Game Over / Tienda) --- */
+    .info-box {
+        background: rgba(0,0,0,0.6); 
+        padding: 15px; 
+        border-radius: 12px; 
+        border: 1px solid rgba(255,255,255,0.3);
+        max-width: 80%;
+        margin-bottom: 15px;
+    }
+    .stat-row { font-size: clamp(12px, 4vh, 18px); margin: 5px 0; color: #ddd; }
+    .big-score { font-size: clamp(20px, 6vh, 35px); color: #00d2ff; font-weight: bold; margin-top: 5px; }
+
+    /* --- BOTONES --- */
     .btn {
         background: linear-gradient(180deg, #00d2ff, #0077ff);
-        border: 2px solid white; color: white; padding: 15px 40px;
-        font-family: 'Black Ops One'; font-size: 20px; cursor: pointer;
-        margin: 10px; transform: skewX(-10deg); transition: 0.2s;
-        box-shadow: 0 0 15px #0077ff; text-transform: uppercase; min-width: 220px; display: inline-block;
+        border: 2px solid white; color: white; 
+        padding: 10px 30px; /* Menos padding vertical */
+        font-family: 'Black Ops One'; 
+        font-size: clamp(14px, 4vh, 20px); 
+        cursor: pointer; margin: 8px; border-radius: 5px;
+        box-shadow: 0 0 10px #0077ff; text-transform: uppercase; 
+        min-width: 150px; display: inline-block;
     }
-    .btn:active { transform: skewX(-10deg) scale(0.95); background: #0055aa; }
+    .btn:active { transform: scale(0.95); background: #0055aa; }
 
-    /* --- TIENDA --- */
-    .perk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px; width: 95%; max-width: 700px; }
+    /* --- TIENDA GRID (Más compacta) --- */
+    .perk-grid { 
+        display: flex; justify-content: center; gap: 10px; 
+        width: 95%; max-width: 600px; margin-bottom: 10px;
+    }
     .perk-card { 
-        border: 2px solid #555; background: rgba(0,0,0,0.6); padding: 15px; 
-        cursor: pointer; transition: 0.2s; border-radius: 8px;
+        border: 1px solid #555; background: rgba(0,0,0,0.5); padding: 10px; 
+        cursor: pointer; border-radius: 8px; flex: 1;
     }
-    .perk-card:active { transform: scale(0.95); background: #00d2ff; color: black; }
-    .perk-icon { font-size: 30px; display: block; margin-bottom: 10px; }
+    .perk-card:active { background: #00d2ff; color: black; }
+    .perk-icon { font-size: clamp(20px, 5vh, 30px); display: block; margin-bottom: 5px; }
+    .perk-text { font-size: clamp(10px, 3vh, 14px); }
 
-    /* --- HUD --- */
+    /* --- HUD (Top Bar) --- */
     #hud-top { 
-        position: absolute; top: 10px; left: 10px; right: 10px; 
-        display: flex; justify-content: space-between; 
-        font-size: 16px; font-weight: bold; z-index: 10; 
+        position: absolute; top: 0; left: 0; width: 100%; 
+        padding: 10px 20px; box-sizing: border-box;
+        display: flex; justify-content: space-between; align-items: flex-start;
+        font-size: 14px; font-weight: bold; z-index: 10; 
         pointer-events: none; color: white; text-shadow: 1px 1px 2px black;
     }
-    .bar-bg { width: 150px; height: 15px; background: #333; border: 2px solid white; transform: skewX(-20deg); overflow: hidden; }
+    .bar-bg { width: 100px; height: 10px; background: #333; border: 1px solid white; overflow: hidden; display: inline-block; }
     .hp-bar { height: 100%; background: #ff0044; width: 100%; transition: width 0.2s; }
-    .xp-bar { height: 100%; background: #00d2ff; width: 0%; transition: width 0.2s; }
     
-    /* --- CONTROLES MÓVILES --- */
+    /* --- CONTROLES MÓVILES (Transparentes y grandes) --- */
     #mobileControls {
-        display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 150px;
+        display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
         z-index: 20; pointer-events: none;
     }
     .touch-area {
-        pointer-events: auto; position: absolute; bottom: 20px;
-        width: 80px; height: 80px; background: rgba(255, 255, 255, 0.1);
-        border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
+        pointer-events: auto; position: absolute; bottom: 10px;
+        width: 80px; height: 80px; 
+        background: rgba(255, 255, 255, 0.05); /* Casi invisible */
+        border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 50%;
         display: flex; justify-content: center; align-items: center;
-        font-size: 30px; color: white; user-select: none;
+        font-size: 30px; color: rgba(255,255,255,0.3); user-select: none;
     }
-    .touch-area:active { background: rgba(255, 255, 255, 0.4); transform: scale(0.95); }
-    #btn-left { left: 20px; } #btn-right { left: 120px; }
-    #btn-jump { right: 20px; width: 100px; height: 100px; background: rgba(0, 210, 255, 0.2); }
+    .touch-area:active { background: rgba(255, 255, 255, 0.2); }
+    #btn-left { left: 20px; bottom: 20px; } 
+    #btn-right { left: 120px; bottom: 20px; }
+    #btn-jump { right: 20px; bottom: 30px; width: 90px; height: 90px; background: rgba(0, 210, 255, 0.1); }
 
     /* --- AVISO GIRO --- */
     #rotate-screen {
@@ -92,27 +127,37 @@
 <div id="rotate-screen"><div style="font-size: 50px;">🔄</div><h1>GIRA TU TELÉFONO</h1></div>
 
 <div id="menuScreen" class="ui-layer interactive">
-    <h1>STORM RUNNER</h1><h2 style="letter-spacing: 5px;">VISUAL FIX</h2><br>
-    <button class="btn" onclick="Game.init(1, 'STORY')">🏰 MODO HISTORIA</button>
-    <button class="btn" style="filter: hue-rotate(45deg);" onclick="Game.init(1, 'SURVIVAL')">💀 INFINITO</button>
+    <h1>STORM RUNNER</h1><h2 style="letter-spacing: 3px;">MOBILE EDITION</h2>
+    <div style="margin-top: 10px;">
+        <button class="btn" onclick="Game.init(1, 'STORY')">🏰 JUGAR</button>
+        <button class="btn" style="filter: hue-rotate(45deg);" onclick="Game.init(1, 'SURVIVAL')">💀 INFINITO</button>
+    </div>
 </div>
 
 <div id="shopScreen" class="ui-layer interactive hidden">
-    <h2 style="color:#00ff00">¡NIVEL COMPLETADO!</h2><p>Mejoras disponibles:</p>
+    <h2 style="color:#00ff00">¡NIVEL COMPLETADO!</h2>
     <div class="perk-grid">
-        <div class="perk-card" onclick="Game.buyPerk('health')"><span class="perk-icon">❤️</span><div>+VIDA</div><div>100🟡</div></div>
-        <div class="perk-card" onclick="Game.buyPerk('shield')"><span class="perk-icon">🛡️</span><div>ESCUDO</div><div>150🟡</div></div>
-        <div class="perk-card" onclick="Game.buyPerk('magnet')"><span class="perk-icon">🧲</span><div>IMÁN</div><div>200🟡</div></div>
-    </div><br><button class="btn" onclick="Game.nextLevel()">CONTINUAR ▶</button>
+        <div class="perk-card" onclick="Game.buyPerk('health')">
+            <span class="perk-icon">❤️</span><div class="perk-text">+VIDA (100🟡)</div>
+        </div>
+        <div class="perk-card" onclick="Game.buyPerk('shield')">
+            <span class="perk-icon">🛡️</span><div class="perk-text">ESCUDO (150🟡)</div>
+        </div>
+        <div class="perk-card" onclick="Game.buyPerk('magnet')">
+            <span class="perk-icon">🧲</span><div class="perk-text">IMÁN (200🟡)</div>
+        </div>
+    </div>
+    <button class="btn" onclick="Game.nextLevel()">CONTINUAR ▶</button>
 </div>
 
 <div id="statsScreen" class="ui-layer interactive hidden">
-    <h1 style="color: #ff4444">GAME OVER</h1>
-    <div style="background:rgba(0,0,0,0.5); padding:20px; border-radius:10px; border: 1px solid white;">
-        <p>⏱️ Tiempo: <span id="statTime" style="color:white;">0</span>s</p>
-        <p>🌊 Olas: <span id="statWaves" style="color:white;">0</span></p>
-        <p>🏆 Puntaje: <span id="statScore" style="color:#00d2ff; font-size:25px">0</span></p>
-    </div><br><button class="btn" onclick="window.location.reload()">VOLVER AL MENÚ</button>
+    <h1 style="color: #ff4444; font-size: clamp(30px, 8vh, 50px);">GAME OVER</h1>
+    <div class="info-box">
+        <div class="stat-row">⏱️ Tiempo: <span id="statTime">0</span>s</div>
+        <div class="stat-row">🌊 Olas: <span id="statWaves">0</span></div>
+        <div class="big-score">🏆 <span id="statScore">0</span></div>
+    </div>
+    <button class="btn" onclick="window.location.reload()">MENÚ</button>
 </div>
 
 <div id="mobileControls">
@@ -120,18 +165,33 @@
 </div>
 
 <div id="hud-top" class="hidden">
-    <div style="display:flex; align-items:center; gap:10px;"><div class="bar-bg"><div class="hp-bar" id="hpBar"></div></div><span>❤️<span id="livesVal">3</span></span></div>
-    <div style="opacity:0.8;"><span id="zoneTitle">ZONA 1</span></div>
-    <div style="text-align:right;"><div>🟡<span id="coinsVal">0</span></div><div class="bar-bg" style="width:100px; height:5px; margin-top:5px;"><div class="xp-bar" id="progressVal"></div></div></div>
+    <div><div class="bar-bg"><div class="hp-bar" id="hpBar"></div></div> <span>❤️<span id="livesVal">3</span></span></div>
+    <div style="position: absolute; left: 50%; transform: translateX(-50%); opacity: 0.7;"><span id="zoneTitle">ZONA 1</span></div>
+    <div>🟡<span id="coinsVal">0</span></div>
 </div>
 
 <canvas id="gameCanvas"></canvas>
 
 <script>
-/* --- MOTOR VISUAL FIX V6 --- */
+/* --- MOTOR OPTIMIZADO PARA MÓVIL --- */
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d", { alpha: false });
-canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+
+// Función para ajustar canvas a pantalla completa real
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if(Game.player) Game.seaLevel = canvas.height - 120; // Agua un poco más baja en móvil
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Activar Pantalla Completa al tocar
+function requestFullScreen() {
+    let elem = document.documentElement;
+    if (elem.requestFullscreen) { elem.requestFullscreen(); } 
+    else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); } /* Safari */
+}
 
 const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 if (isMobile) document.getElementById('mobileControls').style.display = 'block';
@@ -157,12 +217,15 @@ const Game = {
     obstacles: [], coins: [], speed: 6, nextSpawn: 0, seaLevel: 0,
 
     init(numPlayers, mode) {
+        requestFullScreen(); // Intentar pantalla completa
         if (this.loopId) cancelAnimationFrame(this.loopId);
-        AudioEngine.init();
+        AudioEngine.init(); resize();
+        
         this.mode = mode; this.state = 'PLAYING'; this.level = 1; this.speed = 6;
         this.stats = { time: 0, coins: 0, waves: 0 }; this.obstacles = []; this.coins = [];
-        this.player.lives = 3; this.player.maxLives = 3; this.player.y = canvas.height - 150; this.player.dy = 0;
-        this.player.keys = {left:false, right:false, jump:false}; this.seaLevel = canvas.height - 150;
+        this.player.lives = 3; this.player.maxLives = 3; this.player.y = this.seaLevel; this.player.dy = 0;
+        this.player.keys = {left:false, right:false, jump:false}; 
+        
         document.querySelectorAll('.ui-layer').forEach(el => el.classList.add('hidden'));
         document.getElementById('hud-top').classList.remove('hidden');
         this.loop();
@@ -178,13 +241,13 @@ const Game = {
         if (this.player.keys.right && this.player.x < canvas.width - 50) this.player.x += 6;
         if (this.player.keys.left && this.player.x > 10) this.player.x -= 6;
         if (this.player.keys.jump && this.player.grounded) { this.player.dy = -15; this.player.grounded = false; AudioEngine.play('jump'); }
+        
         this.player.y += this.player.dy;
         if (this.player.y < this.seaLevel) { this.player.dy += 0.6; this.player.grounded = false; } else { this.player.y = this.seaLevel; this.player.dy = 0; this.player.grounded = true; }
 
         this.obstacles.forEach(obs => {
             obs.x -= this.speed;
-            // HITBOX REDUCIDA
-            if (this.player.x < obs.x + obs.w - 15 && this.player.x + 40 > obs.x + 15 && this.player.y < obs.y + obs.h - 20 && this.player.y + 40 > obs.y + 20) {
+            if (this.player.x < obs.x + obs.w - 15 && this.player.x + 40 > obs.x + 15 && this.player.y < obs.y + obs.h - 15 && this.player.y + 40 > obs.y + 15) {
                 if (this.player.shield) { this.player.shield = false; obs.x = -1000; } else { this.takeDamage(); obs.x = -1000; }
             }
             if(obs.x < -100 && !obs.passed) { obs.passed = true; this.stats.waves++; }
@@ -201,11 +264,7 @@ const Game = {
         document.getElementById('hpBar').style.width = (this.player.lives / this.player.maxLives * 100) + "%";
         document.getElementById('coinsVal').innerText = this.stats.coins;
 
-        if (this.mode === 'STORY') {
-            let goal = this.level * 30; let progress = (this.stats.time / goal) * 100;
-            document.getElementById('progressVal').style.width = Math.min(progress, 100) + "%";
-            if (this.stats.time >= goal) this.levelComplete();
-        }
+        if (this.mode === 'STORY' && this.stats.time >= this.level * 30) this.levelComplete();
     },
 
     spawnObstacle() {
@@ -226,7 +285,6 @@ const Game = {
     levelComplete() {
         this.state = 'SHOP'; document.getElementById('shopScreen').classList.remove('hidden');
         document.getElementById('hud-top').classList.add('hidden');
-        document.getElementById('shopScreen').style.pointerEvents = "auto"; 
     },
 
     nextLevel() {
@@ -253,25 +311,20 @@ const Game = {
 
     draw() {
         ctx.clearRect(0,0,canvas.width, canvas.height);
-        // FONDO DINÁMICO
         let grad = ctx.createLinearGradient(0,0,0,canvas.height);
         grad.addColorStop(0, this.level % 2 === 0 ? "#001" : "#002"); grad.addColorStop(1, "#0a3d62");
         ctx.fillStyle = grad; ctx.fillRect(0,0,canvas.width, canvas.height);
-        // AGUA
         ctx.fillStyle = "rgba(0, 80, 180, 0.8)"; ctx.fillRect(0, this.seaLevel + 20, canvas.width, canvas.height);
 
-        // --- DIBUJO DEL BARCO REAL ---
+        // --- BARCO ---
         ctx.save(); ctx.translate(this.player.x + 20, this.player.y + 20);
-        // Casco
         ctx.fillStyle = this.player.color; ctx.beginPath();
         ctx.moveTo(-20, 0); ctx.lineTo(20, 0); ctx.lineTo(15, 20); ctx.lineTo(-15, 20); ctx.fill();
-        // Vela
         ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(0,-30); ctx.lineTo(0,0); ctx.lineTo(20,-10); ctx.fill();
-        // Escudo
         if(this.player.shield) { ctx.strokeStyle = "#00ffff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 5, 35, 0, Math.PI*2); ctx.stroke(); }
         ctx.restore();
 
-        // --- DIBUJO DE OLAS Y TIBURONES ---
+        // --- ENEMIGOS ---
         this.obstacles.forEach(o => {
             ctx.fillStyle = o.color;
             if (o.type === 'shark') {
@@ -281,7 +334,6 @@ const Game = {
                 ctx.quadraticCurveTo(o.x + o.w/2, o.y - 20, o.x + o.w, o.y + o.h); ctx.fill();
             }
         });
-
         ctx.fillStyle = "gold";
         this.coins.forEach(c => { ctx.beginPath(); ctx.arc(c.x, c.y, 10, 0, Math.PI*2); ctx.fill(); });
     },
@@ -309,8 +361,6 @@ const addTouch = (id, key) => {
     el.addEventListener('touchend', (e) => { e.preventDefault(); Game.player.keys[key] = false; });
 };
 addTouch('btn-left', 'left'); addTouch('btn-right', 'right'); addTouch('btn-jump', 'jump');
-
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; if(Game.player) Game.seaLevel = canvas.height - 150; });
 </script>
 </body>
 </html>
