@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Storm Runner PRO+ (Full)</title>
+<title>Storm Runner PRO+ (Mobile Fixed)</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#001e38">
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto+Mono:wght@400;700&display=swap');
@@ -153,7 +156,7 @@
     opacity: 0.9;
   }
 
-  /* Misión + combo */
+  /* Misión + combo + racha */
   #hudBottom{
     display:flex;
     justify-content:space-between;
@@ -162,8 +165,13 @@
     opacity: 0.95;
     align-items: center;
   }
-  #missionText{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 56vw; }
+  #missionText{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 54vw; }
   #comboText{ font-family:'Black Ops One'; letter-spacing:0.5px; }
+  #streakText{
+    font-family:'Black Ops One';
+    letter-spacing:0.4px;
+    opacity: 0.95;
+  }
 
   /* Powerup timers */
   #timers{
@@ -278,10 +286,7 @@
   }
 
   /* Panels */
-  #pauseOverlay .panel,
-  #levelDone .panel,
-  #recordsOverlay .panel,
-  #settingsOverlay .panel{
+  .panel{
     width: min(760px, 92vw);
     border: 2px solid rgba(255,255,255,0.25);
     border-radius: 16px;
@@ -322,18 +327,58 @@
     box-shadow: 0 0 30px rgba(0,0,0,0.5);
   }
 
-  /* Tabla records */
-  .table{
+  /* Loading */
+  #loading{
+    position:absolute; inset:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background: radial-gradient(circle at 40% 20%, rgba(0,210,255,0.18), rgba(0,0,0,0.92) 55%);
+    z-index: 100;
+    color:#fff;
+    text-align:center;
+  }
+  #loading .card{
+    width:min(520px, 90vw);
+    padding:18px 14px;
+    border:2px solid rgba(255,255,255,0.18);
+    border-radius:16px;
+    background: rgba(0,0,0,0.35);
+    box-shadow: 0 0 30px rgba(0,0,0,0.55);
+  }
+  #loadBar{
     width:100%;
-    border-collapse: collapse;
+    height:12px;
+    border-radius:999px;
+    background: rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.20);
+    overflow:hidden;
     margin-top: 10px;
-    font-size: 13px;
   }
-  .table td{
-    padding: 6px 6px;
-    border-bottom: 1px solid rgba(255,255,255,0.12);
-    opacity: 0.95;
+  #loadFill{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, rgba(0,210,255,0.9), rgba(255,204,0,0.9));
   }
+
+  /* Achievements toast */
+  #toast{
+    position:absolute;
+    top: calc(12px + var(--safe-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.20);
+    box-shadow: 0 0 18px rgba(0,0,0,0.45);
+    font-family: 'Black Ops One';
+    opacity: 0;
+    pointer-events:none;
+    transition: opacity .2s ease;
+  }
+  #toast.show{ opacity: 1; }
 
   /* Settings controls */
   .settingsGrid{
@@ -358,13 +403,8 @@
     font-size: 13px;
     opacity: .95;
   }
-  .settingRow input[type="range"]{
-    width: min(360px, 44vw);
-  }
-  .pillRow{
-    display:flex; gap: 8px; flex-wrap: wrap;
-    justify-content:flex-end;
-  }
+  .settingRow input[type="range"]{ width: min(360px, 44vw); }
+  .pillRow{ display:flex; gap: 8px; flex-wrap: wrap; justify-content:flex-end; }
   .pill{
     padding: 8px 10px;
     border-radius: 999px;
@@ -384,6 +424,20 @@
 </head>
 
 <body>
+
+  <div id="loading">
+    <div class="card">
+      <h1 style="margin:0;">STORM RUNNER</h1>
+      <h2 style="margin:0;">Cargando...</h2>
+      <div id="loadBar"><div id="loadFill"></div></div>
+      <div style="opacity:.8; font-size:13px; margin-top:10px;">
+        Tip: En móvil, se recomienda jugar en horizontal.
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">🏆 Logro desbloqueado</div>
+
   <div id="rotateOverlay">
     <div class="box">
       <h1>Gira tu teléfono</h1>
@@ -393,28 +447,19 @@
     </div>
   </div>
 
-  <div id="menu" class="ui-layer interactive">
+  <div id="menu" class="ui-layer interactive hidden">
     <h1>STORM RUNNER</h1>
-    <h2>FULL EDITION</h2>
+    <h2>Mobile Fixed + Pro</h2>
     <button class="btn" id="btnPlay">JUGAR</button>
-    <button class="btn secondary" id="btnRecords">🏆 RECORDS</button>
+    <button class="btn secondary hidden" id="btnContinue">▶ CONTINUAR</button>
     <button class="btn secondary" id="btnSettingsMenu">⚙️ CONFIGURACIÓN</button>
+    <button class="btn secondary" id="btnResetSave">🧹 BORRAR GUARDADO</button>
 
     <div style="max-width:780px; padding:0 16px; opacity:.9; line-height:1.35">
       <p style="margin:8px 0 0 0;">⬅️➡️ moverte. ⬆️ saltar (toque = medio, mantener = alto).</p>
       <p style="margin:6px 0 0 0; font-size:13px;">
-        🟡 Monedas: fácil / media / premio. Powerups: 🛡️ 🧲 🪽.
+        En móvil, la velocidad es más lenta automáticamente ✅
       </p>
-    </div>
-  </div>
-
-  <div id="recordsOverlay" class="ui-layer interactive hidden">
-    <div class="panel">
-      <h1 style="font-size:34px;margin:0 0 6px 0;">🏆 Records</h1>
-      <h2 style="margin:0;">Top 5 Puntajes</h2>
-      <table class="table" id="recordsTable"></table>
-      <button class="btn" id="btnCloseRecords">CERRAR</button>
-      <button class="btn secondary" id="btnResetRecords">RESETEAR</button>
     </div>
   </div>
 
@@ -439,7 +484,7 @@
 
         <div class="settingRow">
           <label>Sensibilidad salto</label>
-          <input id="setJumpSens" type="range" min="70" max="115" value="100" />
+          <input id="setJumpSens" type="range" min="70" max="120" value="100" />
         </div>
 
         <div class="settingRow">
@@ -460,6 +505,14 @@
         </div>
 
         <div class="settingRow">
+          <label>Modo Ultra (móvil)</label>
+          <div class="pillRow">
+            <div class="pill" id="uOff">OFF</div>
+            <div class="pill active" id="uOn">ON</div>
+          </div>
+        </div>
+
+        <div class="settingRow">
           <label>Sonido del mar</label>
           <div class="pillRow">
             <div class="pill" id="seaOff">OFF</div>
@@ -468,17 +521,11 @@
         </div>
       </div>
 
-      <button class="btn" id="btnCloseSettings">CERRAR</button>
-    </div>
-  </div>
-
-  <div id="levelDone" class="ui-layer interactive hidden">
-    <div class="panel">
-      <h1 style="font-size:34px;margin:0 0 6px 0;">¡NIVEL COMPLETADO!</h1>
-      <h2 style="margin:0;">Pasando al siguiente...</h2>
-      <div style="margin-top:12px; opacity:.85; font-size:13px;">
-        Tip: Junta 🟡 para desbloquear tienda y skins.
+      <div style="opacity:.82; font-size:13px; margin-top:10px; line-height:1.35;">
+        Tip: Si en tu teléfono va lento, deja <b>Modo Ultra</b> ON y Calidad Baja.
       </div>
+
+      <button class="btn" id="btnCloseSettings">CERRAR</button>
     </div>
   </div>
 
@@ -521,6 +568,16 @@
     <p id="shopHint" style="font-size:12px; opacity:.85; max-width:780px; padding:0 16px; line-height:1.35; margin: 10px 0 0 0;"></p>
   </div>
 
+  <div id="levelDone" class="ui-layer interactive hidden">
+    <div class="panel">
+      <h1 style="font-size:34px;margin:0 0 6px 0;">¡NIVEL COMPLETADO!</h1>
+      <h2 style="margin:0;">Pasando al siguiente...</h2>
+      <div style="margin-top:12px; opacity:.85; font-size:13px;">
+        Tip: Junta 🟡 para desbloquear tienda y skins.
+      </div>
+    </div>
+  </div>
+
   <div id="pauseOverlay" class="ui-layer interactive hidden">
     <div class="panel">
       <h1 style="font-size:36px; margin-bottom:2px;">PAUSA</h1>
@@ -528,9 +585,6 @@
       <button class="btn" id="btnResume">REANUDAR</button>
       <button class="btn" id="btnRestart">REINICIAR NIVEL</button>
       <button class="btn secondary" id="btnMenu">MENÚ</button>
-      <p style="font-size: 13px; opacity:.88; margin: 8px 0 0 0; line-height:1.35;">
-        Mantén ⬆️ para salto alto. 🟡 premio está más alto.
-      </p>
     </div>
   </div>
 
@@ -564,14 +618,15 @@
 
     <div id="hudBottom">
       <div id="missionText">Misión: ...</div>
-      <div style="display:flex; gap: 12px; align-items:center;">
+      <div style="display:flex; gap: 10px; align-items:center;">
         <div id="timers"></div>
+        <div id="streakText">Racha 0 (x1.00)</div>
         <div id="comboText">COMBO x1</div>
       </div>
     </div>
   </div>
 
-  <div id="tip" class="hidden">Mantén ⬆️ para salto alto. ⚙️ ajusta calidad/volumen. Pausa ⏸.</div>
+  <div id="tip" class="hidden">Mantén ⬆️ para salto alto. Pausa ⏸.</div>
 
   <div id="mobileControls">
     <div id="btn-left" class="touch-area">⬅️</div>
@@ -584,25 +639,25 @@
 <script>
 (() => {
   // =========================
-  // Helpers + Storage
+  // Keys / Storage
   // =========================
-  const KEY_RECORDS  = "stormRunner_records_full_v1";
-  const KEY_SKINS    = "stormRunner_skins_full_v1";
-  const KEY_SKINSEL  = "stormRunner_skinSel_full_v1";
-  const KEY_SETTINGS = "stormRunner_settings_full_v1";
+  const KEY_SETTINGS = "sr_settings_v2";
+  const KEY_SAVE     = "sr_autosave_v2";
+  const KEY_SKINS    = "sr_skins_v2";
+  const KEY_SKINSEL  = "sr_skinSel_v2";
+  const KEY_ACH      = "sr_achievements_v2";
 
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
   const rand  = (a,b)=>a+Math.random()*(b-a);
 
   function loadJSON(key, fallback){
-    try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+    try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):fallback; }
     catch(e){ return fallback; }
   }
   function saveJSON(key, value){
     try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
   }
 
-  // iPhone-safe tap
   function onTap(el, fn){
     if (!el) return;
     el.addEventListener('pointerdown', (e)=>{ e.preventDefault(); fn(e); }, { passive:false });
@@ -611,23 +666,60 @@
   }
 
   // =========================
+  // Device detect (mobile pacing fix)
+  // =========================
+  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  const isMobileLike = isTouch || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // very rough low-end heuristic
+  const deviceMemory = navigator.deviceMemory || 4;
+  const cores = navigator.hardwareConcurrency || 4;
+  const isLowEndMobile = isMobileLike && (deviceMemory <= 2 || cores <= 4);
+
+  // =========================
   // Settings
   // =========================
   const defaultSettings = {
     volume: 0.8,
     vibrate: true,
     jumpSensitivity: 1.0,
-    quality: "med",   // low|med|high
+    quality: "med",      // low|med|high
     particles: true,
-    seaSound: true
+    seaSound: true,
+    ultraMobile: isLowEndMobile,  // auto ON if low-end mobile
+    mobileSpeed: 0.78             // <-- clave: más lento solo en móvil
   };
   let settings = { ...defaultSettings, ...loadJSON(KEY_SETTINGS, {}) };
+  // clamp
+  settings.mobileSpeed = clamp(settings.mobileSpeed ?? 0.78, 0.55, 0.95);
+
   function saveSettings(){ saveJSON(KEY_SETTINGS, settings); }
 
   function qualityProfile(){
-    if (settings.quality === "low")  return { dprCap: 1.0, waterDetail: 18, maxParticles: 140, stars: 45, clouds: 4 };
-    if (settings.quality === "high") return { dprCap: 2.0, waterDetail: 46, maxParticles: 520, stars: 130, clouds: 10 };
+    // ultra reduces even more
+    const ultra = settings.ultraMobile && isMobileLike;
+
+    if (settings.quality === "low" || ultra){
+      return { dprCap: ultra ? 1.0 : 1.0, waterDetail: ultra ? 14 : 18, maxParticles: ultra ? 90 : 140, stars: ultra ? 28 : 45, clouds: ultra ? 2 : 4 };
+    }
+    if (settings.quality === "high"){
+      return { dprCap: 2.0, waterDetail: 46, maxParticles: 520, stars: 130, clouds: 10 };
+    }
     return { dprCap: 1.6, waterDetail: 32, maxParticles: 320, stars: 85, clouds: 7 };
+  }
+
+  // =========================
+  // Themes / Zones
+  // =========================
+  const THEMES = [
+    { id:"night",    name:"NOCHE",    skyTop:"#001e38", skyBot:"#0a3d62", water1:"rgba(0,120,230,0.55)", water2:"rgba(0,95,200,0.80)", accent:"#00d2ff" },
+    { id:"storm",    name:"TORMENTA", skyTop:"#060a12", skyBot:"#1a2a44", water1:"rgba(0,110,180,0.55)", water2:"rgba(0,70,120,0.82)", accent:"#ffcc00" },
+    { id:"volcano",  name:"VOLCÁN",   skyTop:"#140006", skyBot:"#2b0a10", water1:"rgba(220,90,40,0.28)", water2:"rgba(0,60,100,0.82)", accent:"#ff6a00" },
+  ];
+  function themeForLevel(lvl){
+    // 1-4 night, 5-8 storm, 9-12 volcano, repeat
+    const block = Math.floor((lvl-1)/4) % THEMES.length;
+    return THEMES[block];
   }
 
   // =========================
@@ -646,21 +738,30 @@
   function skinById(id){ return SKINS.find(s=>s.id===id) || SKINS[0]; }
 
   // =========================
-  // Records
+  // Achievements
   // =========================
-  function getRecords(){ return loadJSON(KEY_RECORDS, []); }
-  function addRecord(score){
-    const arr = getRecords();
-    arr.push({ score: Math.floor(score), date: new Date().toISOString().slice(0,10) });
-    arr.sort((a,b)=>b.score-a.score);
-    saveJSON(KEY_RECORDS, arr.slice(0,5));
+  const ACH_LIST = [
+    { id:"coins100_nohit", title:"100 🟡 sin daño", desc:"Recolecta 100 monedas sin recibir daño." },
+    { id:"streak30",       title:"Racha 30",        desc:"Haz racha de 30 monedas sin daño." },
+    { id:"level5",         title:"Zona 5",          desc:"Llega al nivel 5." },
+    { id:"level10",        title:"Zona 10",         desc:"Llega al nivel 10." },
+  ];
+  let achievements = loadJSON(KEY_ACH, { unlocked: {} });
+
+  const toast = document.getElementById('toast');
+  let toastT = 0;
+  function showToast(text){
+    toast.textContent = text;
+    toast.classList.add('show');
+    toastT = 1.8;
   }
-  function renderRecords(){
-    const t = document.getElementById('recordsTable');
-    const arr = getRecords();
-    t.innerHTML = arr.length
-      ? arr.map((r,i)=>`<tr><td>#${i+1} — ${r.score} pts</td><td style="text-align:right;opacity:.75;">${r.date}</td></tr>`).join("")
-      : `<tr><td>Sin records aún. ¡Juega!</td><td style="text-align:right;opacity:.75;">-</td></tr>`;
+  function unlockAchievement(id){
+    if (achievements.unlocked[id]) return;
+    achievements.unlocked[id] = Date.now();
+    saveJSON(KEY_ACH, achievements);
+    const a = ACH_LIST.find(x=>x.id===id);
+    showToast(`🏆 ${a ? a.title : "Logro desbloqueado"}`);
+    if (settings.vibrate && isMobileLike && navigator.vibrate) navigator.vibrate([15, 25, 15]);
   }
 
   // =========================
@@ -668,19 +769,22 @@
   // =========================
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d', { alpha:false, desynchronized:true });
-  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
   if (isTouch) document.getElementById('mobileControls').style.display = 'block';
   const rotateOverlay = document.getElementById('rotateOverlay');
 
   let DPR=1, W=0, H=0, seaLevel=0;
   let backgroundGradient = null;
 
-  function isPortraitOnMobile(){ return isTouch && window.innerHeight > window.innerWidth; }
+  // camera follow (vertical)
+  const camera = { y: 0, targetY: 0 };
 
-  function buildGradient(level){
+  function isPortraitOnMobile(){ return isMobileLike && window.innerHeight > window.innerWidth; }
+
+  function buildGradient(theme){
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, level % 2 === 0 ? "#000" : "#001e38");
-    g.addColorStop(1, "#0a3d62");
+    g.addColorStop(0, theme.skyTop);
+    g.addColorStop(1, theme.skyBot);
     return g;
   }
 
@@ -699,17 +803,17 @@
       return this.ctx;
     },
     play(type){
-      const ac = this.ensure();
-      if (!ac) return;
+      const ac=this.ensure();
+      if(!ac) return;
 
       const osc = ac.createOscillator();
       const gain = ac.createGain();
       osc.connect(gain); gain.connect(ac.destination);
 
-      const now = ac.currentTime;
-      const vol = settings.volume;
+      const now=ac.currentTime;
+      const vol=settings.volume;
 
-      if (type==='jump'){
+      if(type==='jump'){
         osc.type='sine';
         osc.frequency.setValueAtTime(170, now);
         osc.frequency.linearRampToValueAtTime(360, now+0.08);
@@ -717,7 +821,7 @@
         gain.gain.exponentialRampToValueAtTime(0.0001, now+0.11);
         osc.start(); osc.stop(now+0.12); return;
       }
-      if (type==='coin'){
+      if(type==='coin'){
         osc.type='triangle';
         osc.frequency.setValueAtTime(1200, now);
         osc.frequency.linearRampToValueAtTime(2100, now+0.07);
@@ -725,7 +829,7 @@
         gain.gain.exponentialRampToValueAtTime(0.0001, now+0.10);
         osc.start(); osc.stop(now+0.11); return;
       }
-      if (type==='hit'){
+      if(type==='hit'){
         osc.type='sawtooth';
         osc.frequency.setValueAtTime(120, now);
         osc.frequency.linearRampToValueAtTime(70, now+0.12);
@@ -733,7 +837,7 @@
         gain.gain.exponentialRampToValueAtTime(0.0001, now+0.16);
         osc.start(); osc.stop(now+0.17); return;
       }
-      if (type==='power'){
+      if(type==='power'){
         osc.type='triangle';
         osc.frequency.setValueAtTime(420, now);
         osc.frequency.linearRampToValueAtTime(880, now+0.10);
@@ -741,10 +845,19 @@
         gain.gain.exponentialRampToValueAtTime(0.0001, now+0.14);
         osc.start(); osc.stop(now+0.15); return;
       }
+      // landing sound (game feel)
+      if(type==='land'){
+        osc.type='sine';
+        osc.frequency.setValueAtTime(240, now);
+        osc.frequency.linearRampToValueAtTime(160, now+0.07);
+        gain.gain.setValueAtTime(0.045*vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now+0.09);
+        osc.start(); osc.stop(now+0.10); return;
+      }
     },
     startSea(){
-      const ac = this.ensure();
-      if (!ac || this.sea) return;
+      const ac=this.ensure();
+      if(!ac || this.sea) return;
 
       const bufferSize = 2 * ac.sampleRate;
       const noiseBuffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
@@ -795,33 +908,36 @@
       this.updateSeaVolume();
     },
     stopSea(){
-      if (!this.sea) return;
+      if(!this.sea) return;
       try{ this.sea.src.stop(); this.sea.lfo.stop(); }catch(e){}
       this.sea=null;
     },
     updateSeaVolume(){
-      if (!this.sea || !this.ctx) return;
+      if(!this.sea || !this.ctx) return;
       const base = settings.seaSound ? (0.06 * settings.volume) : 0.0;
       this.sea.gain.gain.setTargetAtTime(base, this.ctx.currentTime, 0.08);
     }
   };
 
-  function vibrate(ms){
+  function vibrateSoft(ms){
     if (!settings.vibrate) return;
+    if (!isMobileLike) return;
     if (navigator.vibrate) navigator.vibrate(ms);
   }
 
   // =========================
   // UI refs
   // =========================
+  const loading = document.getElementById('loading');
+  const loadFill = document.getElementById('loadFill');
+
   const elMenu = document.getElementById('menu');
   const elShop = document.getElementById('shop');
+  const elDone = document.getElementById('levelDone');
   const elOver = document.getElementById('gameover');
   const elHUD  = document.getElementById('hud');
   const elTip  = document.getElementById('tip');
   const elPause= document.getElementById('pauseOverlay');
-  const elDone = document.getElementById('levelDone');
-  const elRecords = document.getElementById('recordsOverlay');
   const elSettings= document.getElementById('settingsOverlay');
 
   const elLives= document.getElementById('lives');
@@ -836,6 +952,7 @@
   const elMission= document.getElementById('missionText');
   const elCombo  = document.getElementById('comboText');
   const elTimers = document.getElementById('timers');
+  const elStreak = document.getElementById('streakText');
 
   const elShopCoins= document.getElementById('shopCoins');
   const elShopHint = document.getElementById('shopHint');
@@ -846,17 +963,24 @@
   const elPriceMagnet = document.getElementById('priceMagnet');
   const elPriceDouble = document.getElementById('priceDouble');
 
+  const btnContinue = document.getElementById('btnContinue');
+
   // =========================
   // Game state
   // =========================
   let playing=false, paused=false, pausedByVisibility=false;
-  let level=1, speed=5.6;
+  let level=1;
   let lastTime=0;
+
+  let theme = themeForLevel(1);
 
   let mission = { type:'time', target: 20, progress: 0 };
 
+  // streak multiplier (coins without damage)
+  let streakCoinsNoHit = 0;
+
   const player = {
-    x:50, y:0, vy:0, grounded:false,
+    x:60, y:0, vy:0, grounded:false,
     lives:3, score:0, coins:0,
     doubleJump:false,
     shieldTime:0, magnetTime:0,
@@ -865,11 +989,17 @@
     coyote:0, jumpBuffer:0,
     jumping:false, jumpHold:0,
     combo:1, comboTimer:0,
-    tilt:0
+
+    // boat fall animation
+    squash: 0,
+    lastVy: 0
   };
 
   let obstacles=[], coins=[], powerups=[];
   let patternQueue=[], tPattern=0, tPower=0;
+
+  // autosave timer
+  let saveT = 0;
 
   // =========================
   // Particles
@@ -915,9 +1045,9 @@
 
   function drawParallax(dt){
     const mx=W*moon.x, my=H*moon.y;
-    ctx.fillStyle="rgba(255,255,220,0.20)";
+    ctx.fillStyle="rgba(255,255,220,0.18)";
     ctx.beginPath(); ctx.arc(mx,my,moon.r*1.7,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="rgba(255,255,240,0.85)";
+    ctx.fillStyle="rgba(255,255,240,0.82)";
     ctx.beginPath(); ctx.arc(mx,my,moon.r,0,Math.PI*2); ctx.fill();
 
     for(const s of stars){
@@ -927,7 +1057,7 @@
     }
 
     for(const c of clouds){
-      c.x -= c.sp*dt;
+      c.x -= c.sp*dt * 0.75;
       if (c.x + c.w < -20) c.x = W + rand(20,120);
       ctx.fillStyle = `rgba(255,255,255,${c.a})`;
       ctx.beginPath(); ctx.ellipse(c.x,c.y,c.w*0.52,c.h*0.52,0,0,Math.PI*2); ctx.fill();
@@ -952,58 +1082,75 @@
     ctx.setTransform(DPR,0,0,DPR,0,0);
 
     seaLevel = H - Math.max(120, Math.min(150, H*0.22));
-    backgroundGradient = buildGradient(level);
     rebuildParallax();
 
     rotateOverlay.style.display = isPortraitOnMobile() ? "flex" : "none";
+
+    theme = themeForLevel(level);
+    backgroundGradient = buildGradient(theme);
   }
   window.addEventListener('resize', resize, { passive:true });
 
   // =========================
-  // Water (solo 1 variable)
+  // Water
   // =========================
   let waterT = 0;
   function drawWater(){
     waterT += 0.018;
-    ctx.fillStyle="rgba(0, 95, 200, 0.80)";
-    ctx.fillRect(0, seaLevel+20, W, H);
+    ctx.fillStyle = theme.water2;
+    ctx.fillRect(0, seaLevel+20 - camera.y, W, H);
 
     const prof=qualityProfile();
     const detail=prof.waterDetail;
-    const amp=settings.quality==="low"?6:10;
+    const amp=(settings.quality==="low" || (settings.ultraMobile && isMobileLike)) ? 5 : 9;
     const freq=0.020;
 
     ctx.beginPath();
-    ctx.moveTo(0, seaLevel+22);
+    ctx.moveTo(0, seaLevel+22 - camera.y);
     for(let i=0;i<=detail;i++){
       const x=(i/detail)*W;
-      const y=seaLevel+22
+      const y=(seaLevel+22 - camera.y)
         + Math.sin(waterT + x*freq)*amp
         + Math.sin(waterT*0.7 + x*freq*1.7)*(amp*0.35);
       ctx.lineTo(x,y);
     }
     ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
-    ctx.fillStyle="rgba(0, 120, 230, 0.55)";
+    ctx.fillStyle = theme.water1;
     ctx.fill();
   }
 
   // =========================
-  // Difficulty / Jump
+  // Difficulty / speed (mobile slower)
   // =========================
   function difficultyForLevel(lvl){
     const sens=settings.jumpSensitivity;
-    const baseJump = clamp((820 + lvl*10)*sens, 720, 1020);     // salto alto
-    const gravity  = clamp(1650 + lvl*55, 1550, 3000);          // más fácil al inicio
+
+    // jump + gravity
+    const baseJump = clamp((820 + lvl*10)*sens, 720, 1040);
+    const gravity  = clamp(1650 + lvl*55, 1550, 3100);
     const moveSpeed= clamp(390 + lvl*12, 390, 560);
+
     const holdTime = clamp(0.225 + lvl*0.002, 0.225, 0.255);
     const holdGravityFactor = 0.44;
-    const spawnTightness = clamp(1.10 - lvl*0.045, 0.60, 1.10);
+
+    // spawn pacing
+    const spawnTightness = clamp(1.10 - lvl*0.045, 0.62, 1.10);
+
     return { baseJump, gravity, moveSpeed, holdTime, holdGravityFactor, spawnTightness };
   }
+
+  function worldSpeedMultiplier(){
+    // ONLY mobile slower
+    let m = 1.0;
+    if (isMobileLike) m *= settings.mobileSpeed;        // default 0.78
+    if (settings.ultraMobile && isMobileLike) m *= 0.92; // a bit more slow if ultra
+    return m;
+  }
+
   function maxJumpHeightPx(diff){
     const g1=diff.gravity*diff.holdGravityFactor;
     const v=diff.baseJump;
-    return clamp((v*v)/(2*g1), 190, 420);
+    return clamp((v*v)/(2*g1), 190, 430);
   }
 
   // =========================
@@ -1020,21 +1167,10 @@
   }
 
   function canOpenShopNow(){
-    if (level < 2) return false; // política: tienda después del nivel 2
+    if (level < 2) return false;
     const p=getPricesForLevel(level);
     const cheapest = Math.min(p.health,p.shield,p.magnet,p.dbl);
-    return player.coins >= cheapest; // solo si puedes comprar algo
-  }
-
-  function updateShopUI(){
-    const p=getPricesForLevel(level);
-    elPriceHealth.textContent=p.health;
-    elPriceShield.textContent=p.shield;
-    elPriceMagnet.textContent=p.magnet;
-    elPriceDouble.textContent=p.dbl;
-    elShopCoins.textContent=player.coins;
-    renderSkinsUI();
-    elShopHint.textContent = "Compra mejoras o skins. Si no te alcanza, junta más 🟡.";
+    return player.coins >= cheapest;
   }
 
   function renderSkinsUI(){
@@ -1052,7 +1188,8 @@
         if (isUnlocked){
           setSelectedSkin(s.id);
           renderSkinsUI();
-        }else{
+          autosave();
+        } else {
           if (player.coins>=s.price){
             player.coins-=s.price;
             setUnlockedSkins(Array.from(new Set([...getUnlockedSkins(), s.id])));
@@ -1061,14 +1198,26 @@
             spawnParticles("coin", player.x+20, player.y+10, 18);
             updateHUD(); updateShopUI();
             elShopHint.textContent=`Skin ${s.name} desbloqueada ✅`;
-          }else{
+            autosave();
+          } else {
             elShopHint.textContent=`Te faltan ${s.price-player.coins} 🟡 para ${s.name}.`;
-            vibrate(20);
+            vibrateSoft(20);
           }
         }
       },{passive:false});
       elSkinsRow.appendChild(el);
     }
+  }
+
+  function updateShopUI(){
+    const p=getPricesForLevel(level);
+    elPriceHealth.textContent=p.health;
+    elPriceShield.textContent=p.shield;
+    elPriceMagnet.textContent=p.magnet;
+    elPriceDouble.textContent=p.dbl;
+    elShopCoins.textContent=player.coins;
+    renderSkinsUI();
+    elShopHint.textContent = "Tip: compra powerups o skins. La tienda aparece solo si puedes comprar algo.";
   }
 
   // =========================
@@ -1103,15 +1252,24 @@
     if (player.magnetTime>0) parts.push(`🧲 ${Math.ceil(player.magnetTime)}s`);
     elTimers.innerHTML = parts.map(t=>`<span class="timerPill">${t}</span>`).join("");
   }
+
+  function streakMultiplier(){
+    // racha larga => multiplica monedas (no el score) para progresión
+    // 0-9 x1.00, 10-19 x1.10, 20-29 x1.20 ... cap x1.50
+    const steps = Math.floor(streakCoinsNoHit / 10);
+    return clamp(1 + steps*0.10, 1, 1.50);
+  }
+
   function updateHUD(){
     elLives.textContent=player.lives;
     elCoins.textContent=player.coins;
     elCombo.textContent=`COMBO x${player.combo}`;
+    elStreak.textContent = `Racha ${streakCoinsNoHit} (x${streakMultiplier().toFixed(2)})`;
     renderTimers();
   }
 
   // =========================
-  // Input
+  // Inputs
   // =========================
   const keys={ left:false, right:false, jump:false };
   window.addEventListener('touchmove',(e)=>e.preventDefault(),{passive:false});
@@ -1186,7 +1344,7 @@
   });
 
   // =========================
-  // Settings UI sync
+  // Settings UI
   // =========================
   const setVolume=document.getElementById('setVolume');
   const setJumpSens=document.getElementById('setJumpSens');
@@ -1207,6 +1365,9 @@
 
     document.getElementById('seaOn').classList.toggle('active', settings.seaSound);
     document.getElementById('seaOff').classList.toggle('active', !settings.seaSound);
+
+    document.getElementById('uOn').classList.toggle('active', settings.ultraMobile);
+    document.getElementById('uOff').classList.toggle('active', !settings.ultraMobile);
   }
 
   setVolume.addEventListener('input',()=>{
@@ -1215,7 +1376,7 @@
     AudioEngine.updateSeaVolume();
   });
   setJumpSens.addEventListener('input',()=>{
-    settings.jumpSensitivity=clamp(parseInt(setJumpSens.value,10)/100,0.70,1.15);
+    settings.jumpSensitivity=clamp(parseInt(setJumpSens.value,10)/100,0.70,1.20);
     saveSettings();
   });
 
@@ -1224,6 +1385,7 @@
       fn(); syncSettingsUI(); saveSettings(); resize();
       if(!settings.seaSound) AudioEngine.stopSea(); else AudioEngine.startSea();
       AudioEngine.updateSeaVolume();
+      autosave();
     });
   }
   setPill('setVibOn', ()=> settings.vibrate=true);
@@ -1235,6 +1397,8 @@
   setPill('qHigh',()=> settings.quality='high');
   setPill('seaOn',()=> settings.seaSound=true);
   setPill('seaOff',()=> settings.seaSound=false);
+  setPill('uOn',()=> settings.ultraMobile=true);
+  setPill('uOff',()=> settings.ultraMobile=false);
 
   function openSettings(){
     syncSettingsUI();
@@ -1261,6 +1425,10 @@
     }
   }
 
+  function resetStreakOnHit(){
+    streakCoinsNoHit = 0;
+  }
+
   function hitPlayer(){
     if(player.invuln>0) return;
 
@@ -1268,17 +1436,24 @@
       player.shieldTime=Math.max(0, player.shieldTime-2.0);
       player.invuln=0.35;
       AudioEngine.play('hit');
-      vibrate(18);
+      vibrateSoft(15);
+      resetStreakOnHit();
+      updateHUD();
       return;
     }
 
     player.lives = Math.max(0, player.lives-1);
     player.invuln=0.90;
     player.combo=1; player.comboTimer=0;
+
     AudioEngine.play('hit');
     spawnParticles("hit", player.x+20, player.y+15, 34);
-    vibrate(45);
+    vibrateSoft(30);
+
+    resetStreakOnHit();
     updateHUD();
+    autosave();
+
     if(player.lives<=0) gameOver();
   }
 
@@ -1300,27 +1475,15 @@
     if(mission.type==='waves') mission.progress = Math.min(mission.target, mission.progress+1);
   }
 
-  function spawnRock(){
-    obstacles.push({ kind:'rock', x:W+30, y:seaLevel-rand(70, 200), w:46, h:34, dead:false });
-  }
-
-  function spawnBubble(){
-    obstacles.push({ kind:'bubble', x:W+30, y:seaLevel-rand(40, 160), w:34, h:34, dead:false, push: rand(260, 420) });
-  }
-
+  function spawnRock(){ obstacles.push({ kind:'rock', x:W+30, y:seaLevel-rand(70, 200), w:46, h:34, dead:false }); }
+  function spawnBubble(){ obstacles.push({ kind:'bubble', x:W+30, y:seaLevel-rand(40, 160), w:34, h:34, dead:false, push: rand(260, 420) }); }
   function spawnFish(){
     const jumpPower = clamp(620 + level*26, 620, 980);
     const fishG = clamp(2100 + level*80, 2100, 3300);
     obstacles.push({ kind:'fish', x:W+30, baseY:seaLevel+30, y:seaLevel+30, vy:-jumpPower, g:fishG, w:42, h:32, dead:false });
   }
-
-  function spawnShark(){
-    obstacles.push({ kind:'shark', x:W+30, y:seaLevel+18, w:62, h:34, dead:false });
-  }
-
-  function spawnLightning(){
-    obstacles.push({ kind:'lightning', x:W+30, y:0, w:26, h:9999, t:0, dur:0.55, dead:false });
-  }
+  function spawnShark(){ obstacles.push({ kind:'shark', x:W+30, y:seaLevel+18, w:62, h:34, dead:false }); }
+  function spawnLightning(){ obstacles.push({ kind:'lightning', x:W+30, y:0, w:26, h:9999, t:0, dur:0.55, dead:false }); }
 
   function spawnCoin(tier){
     const diff=difficultyForLevel(level);
@@ -1328,8 +1491,8 @@
 
     let up;
     if (tier==='easy') up = 70 + Math.random()*70;
-    else if (tier==='mid') up = clamp(maxH*(0.55 + Math.random()*0.15), 130, 230);
-    else up = clamp(maxH*(0.80 + Math.random()*0.10), 200, 310);
+    else if (tier==='mid') up = clamp(maxH*(0.55 + Math.random()*0.15), 130, 240);
+    else up = clamp(maxH*(0.82 + Math.random()*0.10), 210, 330); // prize a bit higher
 
     coins.push({
       x:W+10,
@@ -1346,20 +1509,22 @@
   }
 
   function enqueuePattern(){
-    // más amigable al inicio, más combos después
     const hard = level>=4;
+    const ultra = settings.ultraMobile && isMobileLike;
+
+    // ultra: menos caos
     const patterns = [];
 
     patterns.push(()=>{ // olas + premio
       const count = hard ? 3 : 2;
-      for(let i=0;i<count;i++) patternQueue.push({ type:'wave', delay:i*(hard?0.42:0.54) });
-      patternQueue.push({ type:'coinPrize', delay:(hard?0.42:0.54)*count + 0.12 });
+      for(let i=0;i<count;i++) patternQueue.push({ type:'wave', delay:i*(hard?0.42:0.56) });
+      patternQueue.push({ type:'coinPrize', delay:(hard?0.42:0.56)*count + 0.12 });
     });
 
     patterns.push(()=>{ // pez + monedas
       patternQueue.push({ type:'fish', delay:0.12 });
       patternQueue.push({ type:'coinEasy', delay:0.22 });
-      if(hard) patternQueue.push({ type:'coinMid', delay:0.36 });
+      if(hard && !ultra) patternQueue.push({ type:'coinMid', delay:0.36 });
     });
 
     patterns.push(()=>{ // roca + moneda media
@@ -1377,8 +1542,8 @@
       patternQueue.push({ type:'coinEasy', delay:0.26 });
     });
 
-    if(level>=6){
-      patterns.push(()=>{ // rayo (raro) + premio
+    if(level>=6 && !ultra){
+      patterns.push(()=>{ // rayo raro
         patternQueue.push({ type:'lightning', delay:0.18 });
         patternQueue.push({ type:'coinPrize', delay:0.42 });
       });
@@ -1416,17 +1581,71 @@
   }
 
   // =========================
-  // Level flow
+  // Level flow + Autosave
   // =========================
+  function autosave(){
+    const data = {
+      ts: Date.now(),
+      level,
+      themeId: theme.id,
+      player: {
+        lives: player.lives,
+        score: player.score,
+        coins: player.coins,
+        doubleJump: player.doubleJump,
+        shieldTime: player.shieldTime,
+        magnetTime: player.magnetTime,
+      },
+      streakCoinsNoHit,
+      selectedSkin: getSelectedSkin(),
+      settings: settings
+    };
+    saveJSON(KEY_SAVE, data);
+    // show continue button if exists
+    btnContinue.classList.remove('hidden');
+  }
+
+  function clearSave(){
+    try{ localStorage.removeItem(KEY_SAVE); }catch(e){}
+    btnContinue.classList.add('hidden');
+  }
+
+  function hasSave(){
+    const s = loadJSON(KEY_SAVE, null);
+    return !!(s && s.player && typeof s.level === 'number');
+  }
+
+  function loadSave(){
+    const s = loadJSON(KEY_SAVE, null);
+    if(!s) return false;
+
+    level = s.level || 1;
+    settings = { ...defaultSettings, ...settings, ...(s.settings||{}) };
+    saveSettings();
+    syncSettingsUI();
+
+    player.lives = s.player.lives ?? 3;
+    player.score = s.player.score ?? 0;
+    player.coins = s.player.coins ?? 0;
+    player.doubleJump = !!s.player.doubleJump;
+    player.shieldTime = s.player.shieldTime ?? 0;
+    player.magnetTime = s.player.magnetTime ?? 0;
+
+    streakCoinsNoHit = s.streakCoinsNoHit ?? 0;
+
+    if (s.selectedSkin) setSelectedSkin(s.selectedSkin);
+
+    return true;
+  }
+
   function startLevel(lvl){
     level = lvl;
-    speed = 5.6 + lvl*0.55; // progresivo
-    backgroundGradient = buildGradient(level);
+    theme = themeForLevel(level);
+    backgroundGradient = buildGradient(theme);
 
     obstacles=[]; coins=[]; powerups=[]; particles.length=0;
     patternQueue=[]; tPattern=0; tPower=0;
 
-    seaLevel = H - Math.max(120, Math.min(150, H*0.22));
     player.x = 60;
     player.y = seaLevel;
     player.vy = 0;
@@ -1438,10 +1657,14 @@
     player.jumpHold=0;
     player.extraJumpReady = player.doubleJump;
 
+    // camera resets
+    camera.y = 0;
+    camera.targetY = 0;
+
     setMissionForLevel(level);
     updateProgressUI();
 
-    elZone.textContent = "ZONA " + level;
+    elZone.textContent = `${theme.name} • ZONA ${level}`;
     updateHUD();
 
     playing=true;
@@ -1452,11 +1675,16 @@
     elDone.classList.add('hidden');
     elOver.classList.add('hidden');
     elPause.classList.add('hidden');
-    elRecords.classList.add('hidden');
     elSettings.classList.add('hidden');
 
     elHUD.classList.remove('hidden');
     elTip.classList.remove('hidden');
+
+    // achievements by level
+    if (level >= 5) unlockAchievement("level5");
+    if (level >= 10) unlockAchievement("level10");
+
+    autosave();
 
     lastTime = performance.now();
     requestAnimationFrame(loop);
@@ -1467,13 +1695,13 @@
     elHUD.classList.add('hidden');
     elTip.classList.add('hidden');
 
-    // Política de tienda
+    autosave();
+
     if (canOpenShopNow()){
       elShop.classList.remove('hidden');
       updateShopUI();
     } else {
       elDone.classList.remove('hidden');
-      // pasa automático al siguiente nivel
       setTimeout(()=>{
         elDone.classList.add('hidden');
         startLevel(level+1);
@@ -1486,12 +1714,14 @@
     elHUD.classList.add('hidden');
     elTip.classList.add('hidden');
     elOver.classList.remove('hidden');
-    elScore.textContent = Math.floor(player.score);
-    addRecord(player.score);
+    document.getElementById('scoreVal').textContent = Math.floor(player.score);
+
+    resetStreakOnHit();
+    autosave();
   }
 
   // =========================
-  // Update / Physics
+  // Jump
   // =========================
   function tryJump(diff){
     const canGroundJump = player.grounded || player.coyote>0;
@@ -1513,14 +1743,24 @@
 
       AudioEngine.play('jump');
       spawnParticles("jump", player.x+20, player.y+35, 14);
-      vibrate(10);
+      vibrateSoft(8);
     }
   }
 
+  // =========================
+  // Update
+  // =========================
   function update(dt){
     if(isPortraitOnMobile()) return;
 
+    // toast timer
+    if (toastT > 0){
+      toastT -= dt;
+      if (toastT <= 0) toast.classList.remove('show');
+    }
+
     const diff=difficultyForLevel(level);
+    const spMul = worldSpeedMultiplier();
 
     // timers
     if(player.invuln>0) player.invuln=Math.max(0, player.invuln-dt);
@@ -1535,9 +1775,17 @@
       mission.progress = Math.min(mission.target, mission.progress + dt);
     }
 
-    // move
-    if(keys.left) player.x -= diff.moveSpeed*dt;
-    if(keys.right) player.x += diff.moveSpeed*dt;
+    // autosave every 5s while playing
+    saveT += dt;
+    if (saveT >= 5.0){
+      saveT = 0;
+      autosave();
+    }
+
+    // movement
+    const move = diff.moveSpeed * (isMobileLike ? 0.95 : 1.0);
+    if(keys.left) player.x -= move*dt;
+    if(keys.right) player.x += move*dt;
     player.x = clamp(player.x, 0, W-40);
 
     // jump buffer / coyote
@@ -1558,6 +1806,10 @@
       player.jumpHold=0;
     }
 
+    // store pre-ground state (for landing feel)
+    const wasGrounded = player.grounded;
+    const prevVy = player.vy;
+
     // gravity
     player.vy += g*dt;
     player.y += player.vy*dt;
@@ -1570,30 +1822,52 @@
       player.jumping=false;
       player.jumpHold=0;
       player.extraJumpReady = player.doubleJump;
+
+      // landing feel: if falling fast and just landed
+      if (!wasGrounded && prevVy > 650){
+        AudioEngine.play('land');
+        vibrateSoft(10);            // vibración suave
+        player.squash = 1.0;        // squash animation
+      }
     } else {
       player.grounded=false;
     }
 
-    // spawns
-    tPattern -= dt;
+    // boat fall animation (smooth)
+    player.squash = Math.max(0, player.squash - dt*6);
+    player.lastVy = player.vy;
+
+    // camera follow vertical (soft)
+    // target follows player (show higher when jumping) but capped
+    const desired = clamp((player.y - seaLevel) * 0.55, -140, 80); // negative => camera up
+    camera.targetY = desired;
+    camera.y += (camera.targetY - camera.y) * (1 - Math.pow(0.001, dt)); // smoothing
+
+    // spawn pacing
+    tPattern -= dt * spMul; // slower spawns on mobile
     if(tPattern<=0){
       enqueuePattern();
       tPattern = rand(0.95, 1.25) * diff.spawnTightness;
+      if (settings.ultraMobile && isMobileLike) tPattern *= 1.10; // less spawn in ultra
     }
     runPatternQueue(dt);
 
-    tPower -= dt;
+    tPower -= dt * spMul;
     if(tPower<=0){
       const roll=Math.random();
       if(roll<0.33) spawnPowerup('shield');
       else if(roll<0.66) spawnPowerup('magnet');
       else spawnPowerup('double');
       tPower = rand(7.5, 10.5);
+      if (settings.ultraMobile && isMobileLike) tPower *= 1.15;
     }
 
-    // update obstacles
+    // world speed (px/sec) scaled by mobile pacing fix
+    const worldSpeedPx = (5.6 + level*0.55) * 60 * dt * spMul;
+
+    // obstacles update
     for(const o of obstacles){
-      o.x -= speed*60*dt;
+      o.x -= worldSpeedPx;
 
       if(o.kind==='fish'){
         o.vy += o.g*dt;
@@ -1604,12 +1878,13 @@
         o.t += dt;
         if(o.t > o.dur) o.dead=true;
       }
-      if(o.x < -200) o.dead=true;
+      if(o.x < -220) o.dead=true;
     }
 
-    // update coins + magnet
+    // coins update + magnet
     for(const c of coins){
-      c.x -= speed*60*dt;
+      c.x -= worldSpeedPx;
+
       if (player.magnetTime>0){
         const dx = (player.x+20) - c.x;
         const dy = (player.y+10) - c.y;
@@ -1619,13 +1894,13 @@
           c.y += dy * 0.06;
         }
       }
-      if(c.x < -200) c.dead=true;
+      if(c.x < -220) c.dead=true;
     }
 
-    // update powerups
+    // powerups
     for(const p of powerups){
-      p.x -= speed*60*dt;
-      if(p.x < -200) p.dead=true;
+      p.x -= worldSpeedPx;
+      if(p.x < -220) p.dead=true;
     }
 
     // particles
@@ -1639,15 +1914,13 @@
       if(particles[i].life > particles[i].ttl) particles.splice(i,1);
     }
 
-    // collisions (player box)
+    // collisions
     const px=player.x, py=player.y, pw=40, ph=40;
 
-    // obstacle collisions
     for(const o of obstacles){
       if(o.dead) continue;
 
       if(o.kind==='lightning'){
-        // golpe si estás en suelo cerca del rayo
         if (Math.abs((px+20)-o.x) < 28 && player.y>=seaLevel-2){
           hitPlayer();
           o.dead=true;
@@ -1661,7 +1934,7 @@
           o.dead=true;
           AudioEngine.play('power');
           spawnParticles("power", px+20, py+20, 14);
-          vibrate(12);
+          vibrateSoft(10);
         } else {
           o.dead=true;
           hitPlayer();
@@ -1674,15 +1947,27 @@
       if(c.dead) continue;
       if(Math.abs((px+20)-c.x)<24 && Math.abs((py+20)-c.y)<24){
         c.dead=true;
-        const gain = c.value;
-        player.coins += gain * player.combo;
+
+        // streak/multiplier
+        streakCoinsNoHit++;
+        const mult = streakMultiplier();
+
+        // achievements
+        if (streakCoinsNoHit >= 30) unlockAchievement("streak30");
+        if (streakCoinsNoHit >= 100) unlockAchievement("coins100_nohit");
+
+        const gained = Math.round(c.value * mult);
+        player.coins += gained * player.combo; // combo + streak
         player.score += c.bonusScore * player.combo;
+
         if (mission.type==='coins'){
-          mission.progress = Math.min(mission.target, mission.progress + gain);
+          mission.progress = Math.min(mission.target, mission.progress + gained);
         }
+
         applyComboOnCoin();
         AudioEngine.play('coin');
         spawnParticles("coin", c.x, c.y, 18);
+
         updateHUD();
       }
     }
@@ -1701,7 +1986,6 @@
       }
     }
 
-    // clean dead
     obstacles = obstacles.filter(o=>!o.dead);
     coins = coins.filter(c=>!c.dead);
     powerups = powerups.filter(p=>!p.dead);
@@ -1711,7 +1995,6 @@
 
     updateProgressUI();
 
-    // check mission complete
     if(mission.progress >= mission.target){
       levelComplete();
     }
@@ -1724,62 +2007,70 @@
     ctx.fillStyle = backgroundGradient || "#001e38";
     ctx.fillRect(0,0,W,H);
 
-    // parallax
+    // parallax (not affected by camera much)
     drawParallax(1/60);
 
-    // water
+    // water (affected by camera)
     drawWater();
 
     // obstacles
     for(const o of obstacles){
+      const ox = o.x;
+      const oy = o.y - camera.y;
+
       if(o.kind==='wave'){
-        ctx.fillStyle = "rgba(0,180,255,0.85)";
+        ctx.fillStyle = theme.id==="volcano" ? "rgba(255,120,40,0.70)" : "rgba(0,180,255,0.85)";
         ctx.beginPath();
-        ctx.moveTo(o.x, o.y+o.h);
-        ctx.quadraticCurveTo(o.x+o.w/2, o.y-18, o.x+o.w, o.y+o.h);
+        ctx.moveTo(ox, oy+o.h);
+        ctx.quadraticCurveTo(ox+o.w/2, oy-18, ox+o.w, oy+o.h);
         ctx.closePath();
         ctx.fill();
       } else if(o.kind==='shark'){
         ctx.font = "28px Arial";
-        ctx.fillText("🦈", o.x, o.y+28);
+        ctx.fillText("🦈", ox, oy+28);
       } else if(o.kind==='fish'){
         ctx.font = "26px Arial";
-        ctx.fillText("🐟", o.x, o.y+26);
+        ctx.fillText("🐟", ox, oy+26);
       } else if(o.kind==='rock'){
         ctx.font = "26px Arial";
-        ctx.fillText("🪨", o.x, o.y+26);
+        ctx.fillText("🪨", ox, oy+26);
       } else if(o.kind==='bubble'){
         ctx.font = "26px Arial";
-        ctx.fillText("🫧", o.x, o.y+26);
+        ctx.fillText("🫧", ox, oy+26);
       } else if(o.kind==='lightning'){
         ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.fillRect(o.x-3, 0, 6, seaLevel+35);
+        ctx.fillRect(ox-3, 0, 6, (seaLevel+35 - camera.y));
         ctx.fillStyle = "rgba(255,255,0,0.8)";
-        ctx.fillRect(o.x-1, 0, 2, seaLevel+35);
+        ctx.fillRect(ox-1, 0, 2, (seaLevel+35 - camera.y));
       }
     }
 
     // coins
     for(const c of coins){
+      const cx = c.x;
+      const cy = c.y - camera.y;
+
       if(c.tier==='prize'){
         ctx.fillStyle="gold";
-        ctx.beginPath(); ctx.arc(c.x,c.y,12,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx,cy,12,0,Math.PI*2); ctx.fill();
         ctx.fillStyle="rgba(255,255,255,0.75)";
-        ctx.beginPath(); ctx.arc(c.x-4,c.y-4,3,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx-4,cy-4,3,0,Math.PI*2); ctx.fill();
       }else if(c.tier==='mid'){
         ctx.fillStyle="rgba(255,215,0,0.9)";
-        ctx.beginPath(); ctx.arc(c.x,c.y,10,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx,cy,10,0,Math.PI*2); ctx.fill();
       }else{
         ctx.fillStyle="rgba(255,215,0,0.75)";
-        ctx.beginPath(); ctx.arc(c.x,c.y,9,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx,cy,9,0,Math.PI*2); ctx.fill();
       }
     }
 
     // powerups
     for(const p of powerups){
+      const px = p.x - 10;
+      const py = p.y - camera.y + 10;
       ctx.font="22px Arial";
       const icon = p.kind==='shield' ? "🛡️" : (p.kind==='magnet' ? "🧲" : "🪽");
-      ctx.fillText(icon, p.x-10, p.y+10);
+      ctx.fillText(icon, px, py);
     }
 
     // particles
@@ -1789,17 +2080,22 @@
         if(pt.kind==="hit") ctx.fillStyle=`rgba(255,80,80,${a})`;
         else if(pt.kind==="coin") ctx.fillStyle=`rgba(255,215,0,${a})`;
         else ctx.fillStyle=`rgba(0,210,255,${a})`;
-        ctx.fillRect(pt.x, pt.y, pt.size, pt.size);
+        ctx.fillRect(pt.x, pt.y - camera.y, pt.size, pt.size);
       }
     }
 
-    // boat
+    // boat (fall animation + squash)
     const sk = skinById(getSelectedSkin());
-    const tilt = clamp(player.vy*0.0025, -0.25, 0.25);
+
+    const tilt = clamp(player.lastVy*0.0022, -0.28, 0.30);
+    const squash = player.squash; // 0..1
+    const sx = 1 + squash*0.20;
+    const sy = 1 - squash*0.18;
 
     ctx.save();
-    ctx.translate(player.x+20, player.y+20);
+    ctx.translate(player.x+20, (player.y - camera.y)+20);
     ctx.rotate(tilt);
+    ctx.scale(sx, sy);
 
     ctx.fillStyle = sk.boat;
     ctx.beginPath();
@@ -1825,10 +2121,12 @@
   // =========================
   function loop(now){
     if(!playing || paused) return;
+
+    // prevent gameplay in portrait mobile
+    rotateOverlay.style.display = isPortraitOnMobile() ? "flex" : "none";
+
     const dt = Math.min(0.033, (now-lastTime)/1000 || 0.016);
     lastTime = now;
-
-    rotateOverlay.style.display = isPortraitOnMobile() ? "flex" : "none";
 
     AudioEngine.updateSeaVolume();
     update(dt);
@@ -1838,7 +2136,7 @@
   }
 
   // =========================
-  // Shop buy
+  // Shop
   // =========================
   function shopHint(msg){ elShopHint.textContent = msg || ""; }
 
@@ -1859,10 +2157,11 @@
       AudioEngine.play('coin'); shopHint("Compraste 🪽 Doble salto");
     }else{
       shopHint("No te alcanza 😅");
-      vibrate(20);
+      vibrateSoft(20);
     }
     updateHUD();
     updateShopUI();
+    autosave();
   }
 
   document.getElementById('buyHealth').onclick=()=>buy('health');
@@ -1871,29 +2170,35 @@
   document.getElementById('buyDouble').onclick=()=>buy('double');
 
   // =========================
-  // Buttons
+  // UI Buttons
   // =========================
   onTap(document.getElementById('btnPlay'), ()=>{
     AudioEngine.ensure();
     if(settings.seaSound) AudioEngine.startSea();
     AudioEngine.play('coin');
 
-    // reset total
+    // reset
     player.lives=3; player.score=0; player.coins=0;
     player.doubleJump=false; player.shieldTime=0; player.magnetTime=0;
     player.combo=1; player.comboTimer=0;
+    streakCoinsNoHit = 0;
 
+    autosave();
     startLevel(1);
   });
 
-  onTap(document.getElementById('btnRecords'), ()=>{
-    renderRecords();
-    elRecords.classList.remove('hidden');
+  onTap(document.getElementById('btnContinue'), ()=>{
+    AudioEngine.ensure();
+    if(settings.seaSound) AudioEngine.startSea();
+    if (loadSave()){
+      updateHUD();
+      startLevel(level);
+    }
   });
-  onTap(document.getElementById('btnCloseRecords'), ()=> elRecords.classList.add('hidden'));
-  onTap(document.getElementById('btnResetRecords'), ()=>{
-    saveJSON(KEY_RECORDS, []);
-    renderRecords();
+
+  onTap(document.getElementById('btnResetSave'), ()=>{
+    clearSave();
+    showToast("Guardado borrado");
   });
 
   onTap(document.getElementById('btnSettingsMenu'), ()=> openSettings());
@@ -1916,15 +2221,100 @@
   });
 
   // =========================
+  // Spawn pattern engine
+  // =========================
+  function enqueuePattern(){
+    // implemented above; kept for clarity
+    // (already defined earlier)
+  }
+
+  // =========================
+  // Loading screen short
+  // =========================
+  function showMenu(){
+    elMenu.classList.remove('hidden');
+    elHUD.classList.add('hidden');
+    elTip.classList.add('hidden');
+    elShop.classList.add('hidden');
+    elDone.classList.add('hidden');
+    elOver.classList.add('hidden');
+    elPause.classList.add('hidden');
+    elSettings.classList.add('hidden');
+
+    if (hasSave()) btnContinue.classList.remove('hidden');
+    else btnContinue.classList.add('hidden');
+  }
+
+  // =========================
+  // PWA register
+  // =========================
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+
+  // =========================
   // Init
   // =========================
-  resize();
-  updateHUD();
-  syncSettingsUI();
-  renderSkinsUI();
+  // fake loading progress
+  let lp = 0;
+  const loadInterval = setInterval(()=>{
+    lp = Math.min(1, lp + 0.12);
+    loadFill.style.width = Math.floor(lp*100) + "%";
+  }, 90);
+
+  setTimeout(()=>{
+    clearInterval(loadInterval);
+    loadFill.style.width = "100%";
+    setTimeout(()=>{
+      loading.classList.add('hidden');
+      resize();
+      syncSettingsUI();
+      updateHUD();
+      renderSkinsUI();
+      showMenu();
+    }, 200);
+  }, 900);
 
   // resume audio on first gesture
   window.addEventListener('pointerdown', ()=>AudioEngine.ensure(), { once:true });
+
+  // render skins function depends on player coins etc.
+  function renderSkinsUI(){
+    const unlocked=new Set(getUnlockedSkins());
+    const selected=getSelectedSkin();
+    elSkinsRow.innerHTML="";
+    for(const s of SKINS){
+      const isUnlocked=unlocked.has(s.id);
+      const isActive=(selected===s.id);
+      const el=document.createElement("div");
+      el.className="skin"+(isActive?" active":"");
+      el.innerHTML=`<div class="skinTitle">${s.name}</div><div class="chip">${isUnlocked?"Desbloqueado":s.chip}</div>`;
+      el.addEventListener("pointerdown",(e)=>{
+        e.preventDefault();
+        if (isUnlocked){
+          setSelectedSkin(s.id);
+          renderSkinsUI();
+          autosave();
+        } else {
+          if (player.coins>=s.price){
+            player.coins-=s.price;
+            setUnlockedSkins(Array.from(new Set([...getUnlockedSkins(), s.id])));
+            setSelectedSkin(s.id);
+            AudioEngine.play('coin');
+            updateHUD(); updateShopUI();
+            elShopHint.textContent=`Skin ${s.name} desbloqueada ✅`;
+            autosave();
+          } else {
+            elShopHint.textContent=`Te faltan ${s.price-player.coins} 🟡 para ${s.name}.`;
+            vibrateSoft(20);
+          }
+        }
+      },{passive:false});
+      elSkinsRow.appendChild(el);
+    }
+  }
 
 })();
 </script>
